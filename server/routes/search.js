@@ -6,11 +6,13 @@ const matchSubtitles = require('../utils/matchSubtitles');
 const { getImdbIdFromTmdbId } = require('../services/tmdb');
 
 router.get('/', async (req, res) => {
-  const { title, season, episode, tmdbId } = req.query;
+  let { title, season, episode, tmdbId } = req.query;
   if (!title) {
     return res.status(400).send('Missing required parameter: title');
   }
   try {
+
+    title = title.replace("'","");
     let imdbIdFilter = null;
 
     if (tmdbId) {

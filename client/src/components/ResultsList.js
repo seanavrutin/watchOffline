@@ -90,7 +90,7 @@ const ResultsList = ({ results }) => {
             ))}
         </Box>
         ) : (
-        <TableContainer component={Paper} sx={{ overflowX: 'hidden' }}>
+        <TableContainer component={Paper} >
             <Table stickyHeader size="small">
             <TableHead>
                 <TableRow>

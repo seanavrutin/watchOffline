@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Container, Typography,Box } from '@mui/material';
 import Main from './pages/Main';
+import Background from "./components/Background";
+
 
 function App() {
   const [tab, setTab] = useState(0);
@@ -17,6 +19,8 @@ function App() {
         paddingTop: 4,
       }}
     >
+      <Background />
+
       <Typography
         variant="h3"
         gutterBottom

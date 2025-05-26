@@ -23,11 +23,9 @@ function MainTab() {
 
   const handleSearch = async () => {
     setSearchAttempted(true);
-
     if(isSeries && (!episode || !season)){
       return;
     }
-
     setLoadingResults(true);
 
     try {
@@ -109,7 +107,7 @@ function MainTab() {
             </ToggleButtonGroup>
 
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Button variant="contained" onClick={handleSearch}>
+            <Button disabled={loadingResults} variant="contained" onClick={handleSearch}>
               Search
             </Button>
           </Box>

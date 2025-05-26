@@ -18,8 +18,6 @@ function TitleAutocomplete({ setTitle, setIsSeries, setSelectedItem }) {
         if (!inputChanged) return;
     
         const interval = setInterval(async () => {
-            console.log(1);
-
           const now = Date.now();
           if (now - lastTypeTimeRef.current >= 500) {
             setInputChanged(false);
@@ -63,6 +61,7 @@ function TitleAutocomplete({ setTitle, setIsSeries, setSelectedItem }) {
       onInputChange={handleInputChange}
       onChange={(e, val) => {
         if (val) {
+          console.log(val)
           setTitle(val.title);
           setIsSeries(val.type === 'tv');
           setSelectedItem(val);

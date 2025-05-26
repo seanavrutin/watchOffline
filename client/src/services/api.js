@@ -3,7 +3,6 @@ import axios from 'axios';
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 export const searchTorrentsAndSubs = async (title, isSeries, season, episode, tmdbId) => {
-    console.log(title);
   const params = new URLSearchParams({ title });
 
   if (tmdbId) {
