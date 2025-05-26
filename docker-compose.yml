@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  client:
+    build: ./client
+    ports:
+      - "3005:80"
+    depends_on:
+      - server
+
+  server:
+    build: ./server
+    ports:
+      - "3001:3001"
