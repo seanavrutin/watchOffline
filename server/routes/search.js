@@ -39,7 +39,10 @@ router.get('/', async (req, res) => {
       }
     }
 
-    const result = matchSubtitles(torrents, allSubs);
+    let torrentsWithSubs = matchSubtitles(torrents, allSubs);
+    let result = {};
+    result.torrents = torrentsWithSubs;
+    result.subs = allSubs
     res.json(result);
   } catch (e) {
     console.error(e);
