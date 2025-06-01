@@ -44,15 +44,15 @@ const ResultsList = ({ results }) => {
   if (!results.length) return null;
 
   return (
-    <Box mt={4} width="100%">
+    <Box mt={4} width="100%" sx={{ marginTop: "5px" }}>
         {isMobile ? (
         <Box display="flex" flexDirection="column" gap={2}>
             {results.map((item, idx) => (
             <Card key={idx} variant="outlined">
                 <CardHeader
-                title={item.title}
-                sx={{ backgroundColor: '#e0f7fa', padding: 1, textAlign: 'center' }}
-                titleTypographyProps={{ variant: 'subtitle2' }}
+                    title={item.title}
+                    sx={{ backgroundColor: '#e0f7fa', padding: 1, textAlign: 'center' }}
+                    titleTypographyProps={{ variant: 'subtitle2' }}
                 />
                 <CardContent>
                 <Box display="flex" justifyContent="space-between" alignItems="center" px={1}>
@@ -91,20 +91,24 @@ const ResultsList = ({ results }) => {
         </Box>
         ) : (
         <TableContainer component={Paper} >
-            <Table stickyHeader size="small">
+            <Table hover stickyHeader size="small">
             <TableHead>
-                <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Size</TableCell>
-                <TableCell>Seeders</TableCell>
-                <TableCell>Leechers</TableCell>
-                <TableCell>Download</TableCell>
-                <TableCell>Subtitles</TableCell>
+                <TableRow sx={{ backgroundColor: '#e0f7fa' }}>
+                <TableCell sx={{ backgroundColor: '#e0f7fa' }}>Name</TableCell>
+                <TableCell sx={{ backgroundColor: '#e0f7fa' }}>Size</TableCell>
+                <TableCell sx={{ backgroundColor: '#e0f7fa' }}>Seeders</TableCell>
+                <TableCell sx={{ backgroundColor: '#e0f7fa' }}>Leechers</TableCell>
+                <TableCell sx={{ backgroundColor: '#e0f7fa' }}>Download</TableCell>
+                <TableCell sx={{ backgroundColor: '#e0f7fa' }}>Subtitles</TableCell>
                 </TableRow>
             </TableHead>
             <TableBody>
                 {results.map((item, idx) => (
-                <TableRow key={idx}>
+                <TableRow sx={{
+                    '&:hover': {
+                      backgroundColor: '#f1f1f1', // Light gray or any color you prefer
+                    },
+                  }} key={idx}>
                     <TableCell>{item.title}</TableCell>
                     <TableCell>{formatSize(item.size)}</TableCell>
                     <TableCell sx={{ color: 'green' }}>{item.seeders}</TableCell>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import TitleAutocomplete from '../components/TitleAutocomplete';
 import DotsLoader from '../components/DotsLoader';
 import ResultsList from '../components/ResultsList';
+import SubtitlesList from '../components/SubtitlesList';
 import {Box,TextField,Button,useMediaQuery,} from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import ToggleButton from '@mui/material/ToggleButton';
@@ -13,10 +14,13 @@ function MainTab() {
   const [isSeries, setIsSeries] = useState(false);
   const [season, setSeason] = useState('');
   const [episode, setEpisode] = useState('');
-  const [results, setResults] = useState([]);
+  const [results, setResults] = useState({});
+  const [allTorrents, setAllTorrents] = useState([]);
+  const [allSubs, setAllSubs] = useState([]);
   const [loadingResults, setLoadingResults] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [searchAttempted, setSearchAttempted] = useState(false);
+  const [tab, setTab] = useState('torrents');
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
@@ -32,6 +36,8 @@ function MainTab() {
       let tmdbId = selectedItem?.id ? selectedItem.id : undefined;
       let results = await searchTorrentsAndSubs(title, isSeries, season, episode, tmdbId);
       setResults(results);
+      setAllTorrents(results.torrents);
+      setAllSubs(results.subs);
     } catch (e) {
       console.error('Search failed:', e);
       setLoadingResults(false);
@@ -93,7 +99,7 @@ function MainTab() {
             )
           )}
 
-            <ToggleButtonGroup
+            {/* <ToggleButtonGroup
                 value={isSeries ? 'series' : 'movie'}
                 exclusive
                 onChange={(e, value) => {
@@ -104,7 +110,7 @@ function MainTab() {
             >
                 <ToggleButton value="movie"  sx={{ textTransform: 'none' }}>Movie</ToggleButton>
                 <ToggleButton value="series"  sx={{ textTransform: 'none' }}>Series</ToggleButton>
-            </ToggleButtonGroup>
+            </ToggleButtonGroup> */}
 
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
             <Button disabled={loadingResults} variant="contained" onClick={handleSearch}>
@@ -119,8 +125,38 @@ function MainTab() {
           <DotsLoader size={8} />
         </Box>
       )}
-      {results.length > 0 && (
-        <ResultsList results={results}/>
+
+      {allTorrents.length > 0 && (
+        <>
+          <Box sx={{ width: '100%', display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
+            <ToggleButtonGroup
+              value={tab}
+              exclusive
+              onChange={(e, value) => value && setTab(value)}
+              size="small"
+            >
+              <ToggleButton
+                sx={{ paddingBottom: 0, paddingTop: 0, textTransform: 'none' }}
+                value="torrents"
+              >
+                Torrents
+              </ToggleButton>
+              <ToggleButton
+                sx={{ paddingBottom: 0, paddingTop: 0, textTransform: 'none' }}
+                value="subs"
+              >
+                Subtitles
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+
+          {tab === 'torrents' && (
+            <ResultsList results={allTorrents} />
+          )}
+          {tab === 'subs' && (
+            <SubtitlesList subtitles={allSubs} query={title} />
+          )}
+        </>
       )}
     </Box>
   );
