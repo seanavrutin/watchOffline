@@ -156,7 +156,15 @@ function MainTab() {
           {tab === 'subs' && (
             <SubtitlesList subtitles={allSubs} query={title} />
           )}
+
         </>
+      )}
+      {allTorrents.length === 0 && (
+        <img
+          src="./logo.png"
+          alt="WatchOffline Logo"
+          style={{ width: 350, opacity: 0.7 }}
+        />
       )}
     </Box>
   );
