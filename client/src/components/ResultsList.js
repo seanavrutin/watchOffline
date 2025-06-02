@@ -22,7 +22,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import { downloadSubtitle } from '../services/api';
 
 const formatSize = (sizeStr) => {
-  const [value, unit] = sizeStr.split(' ');
+  const [value] = sizeStr.split(' ');
   const mb = parseFloat(value);
   if (isNaN(mb)) return sizeStr;
   const gb = mb / 1024;

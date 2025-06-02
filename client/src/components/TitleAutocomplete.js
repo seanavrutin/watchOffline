@@ -22,8 +22,14 @@ function TitleAutocomplete({ setTitle, setIsSeries, setSelectedItem }) {
           if (now - lastTypeTimeRef.current >= 500) {
             setInputChanged(false);
             const query = titleRef.current;
+
+            if (!query || query.length == 0) {
+              const recent = JSON.parse(localStorage.getItem('recentSearches') || '[]');
+              setOptions(recent);
+              return;
+            }
     
-            if (!query || query.length < 2) {
+            if (query.length < 2) {
               setOptions([]);
               return;
             }
@@ -52,6 +58,21 @@ function TitleAutocomplete({ setTitle, setIsSeries, setSelectedItem }) {
         lastTypeTimeRef.current = Date.now();
         setInputChanged(true);
       };
+      
+      const saveToLocalStorage = (val) => {
+        const newEntry = {
+          id: val.id,
+          title: val.title,
+          year: val.year,
+          type: val.type,
+          poster: val.poster,
+        };
+    
+        const history = JSON.parse(localStorage.getItem('recentSearches') || '[]');
+        const updated = [newEntry, ...history.filter(e => e.id !== val.id)];
+        localStorage.setItem('recentSearches', JSON.stringify(updated.slice(0, 5)));
+      };
+
 
   return (
     <Autocomplete
@@ -61,10 +82,10 @@ function TitleAutocomplete({ setTitle, setIsSeries, setSelectedItem }) {
       onInputChange={handleInputChange}
       onChange={(e, val) => {
         if (val) {
-          console.log(val)
           setTitle(val.title);
           setIsSeries(val.type === 'tv');
           setSelectedItem(val);
+          saveToLocalStorage(val);
         }
       }}
       renderOption={(props, option) => (

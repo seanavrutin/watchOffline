@@ -5,7 +5,6 @@ import Background from "./components/Background";
 
 
 function App() {
-  const [tab, setTab] = useState(0);
 
   return (
     <Container
