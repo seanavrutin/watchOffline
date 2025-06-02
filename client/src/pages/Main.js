@@ -30,11 +30,15 @@ function MainTab() {
     if(isSeries && (!episode || !season)){
       return;
     }
+
+    const paddedSeason = season.padStart(2, '0');
+    const paddedEpisode = episode.padStart(2, '0');
+
     setLoadingResults(true);
 
     try {
       let tmdbId = selectedItem?.id ? selectedItem.id : undefined;
-      let results = await searchTorrentsAndSubs(title, isSeries, season, episode, tmdbId);
+      let results = await searchTorrentsAndSubs(title, isSeries, paddedSeason, paddedEpisode, tmdbId);
       setResults(results);
       setAllTorrents(results.torrents);
       setAllSubs(results.subs);

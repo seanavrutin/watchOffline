@@ -15,21 +15,22 @@ function TitleAutocomplete({ setTitle, setIsSeries, setSelectedItem }) {
 
 
     useEffect(() => {
-        if (!inputChanged) return;
+
+      if (!titleRef.current || titleRef.current.length == 0 && options.length == 0) {
+        const recent = JSON.parse(localStorage.getItem('recentSearches') || '[]');
+        setOptions(recent);
+        return;
+      }
+
+      if (!inputChanged) return;
     
         const interval = setInterval(async () => {
           const now = Date.now();
           if (now - lastTypeTimeRef.current >= 500) {
             setInputChanged(false);
             const query = titleRef.current;
-
-            if (!query || query.length == 0) {
-              const recent = JSON.parse(localStorage.getItem('recentSearches') || '[]');
-              setOptions(recent);
-              return;
-            }
     
-            if (query.length < 2) {
+            if (!query || query.length < 2) {
               setOptions([]);
               return;
             }
@@ -89,6 +90,7 @@ function TitleAutocomplete({ setTitle, setIsSeries, setSelectedItem }) {
         }
       }}
       renderOption={(props, option) => (
+        <React.Fragment key={`${option.id}-${option.title}`}>
         <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Avatar
             src={option.poster || undefined}
@@ -102,6 +104,7 @@ function TitleAutocomplete({ setTitle, setIsSeries, setSelectedItem }) {
             </Typography>
           </Box>
         </Box>
+        </React.Fragment>
       )}
       renderInput={(params) => (
         <TextField
