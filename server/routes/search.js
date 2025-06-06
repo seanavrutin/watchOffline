@@ -28,7 +28,7 @@ router.get('/', async (req, res) => {
     let allSubs = [];
 
     if(imdbIdFilter){
-      torrents = torrents.filter(t => t.imdb === imdbIdFilter);
+      torrents = torrents.filter(t => t.imdb === imdbIdFilter || t.imdb === "");
       allSubs = await OpenSubtitles.search(imdbIdFilter, season, episode);
     }
     else{
