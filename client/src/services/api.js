@@ -47,11 +47,11 @@ export const downloadSubtitleForKtuvit = async (filmID,ktuvit_id,release) => {
     const res = await fetch(`${API_BASE_URL}/downloadSub/ktuvit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filmID,ktuvit_id,release }),
-      responseType: 'blob'
+      body: JSON.stringify({ filmID,ktuvit_id,release })
     });
 
-    const blob = new Blob([res.data], { type: 'application/octet-stream' });
+    const arrayBuffer = await res.arrayBuffer();
+    const blob = new Blob([arrayBuffer], { type: 'application/octet-stream' });
     const url = window.URL.createObjectURL(blob);
 
     const a = document.createElement('a');
