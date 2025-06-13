@@ -19,7 +19,8 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import DownloadIcon from '@mui/icons-material/Download';
-import { downloadSubtitle } from '../services/api';
+import { downloadSubtitleForOpenSubtitles } from '../services/api';
+import { downloadSubtitleForKtuvit } from '../services/api';
 
 const formatSize = (sizeStr) => {
   const [value] = sizeStr.split(' ');
@@ -31,7 +32,12 @@ const formatSize = (sizeStr) => {
 
 const handleSubtitleDownload = async (subtitle) => {
     try {
-      await downloadSubtitle(subtitle.file_id, subtitle.release);
+        if(subtitle.file_id){
+            await downloadSubtitleForOpenSubtitles(subtitle.file_id, subtitle.release);
+        }
+        else if(subtitle.ktuvit_id){
+            await downloadSubtitleForKtuvit(subtitle.filmID,subtitle.ktuvit_id,subtitle.release)
+        }
     } catch (err) {
       console.error('Subtitle download failed:', err);
     }

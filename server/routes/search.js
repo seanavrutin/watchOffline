@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
+const Ktuvit = require('../services/ktuvit');
 const Apibay = require('../services/apibay');
 const OpenSubtitles = require('../services/openSubtitles');
 const matchSubtitles = require('../utils/matchSubtitles');
 const { getImdbIdFromTmdbId } = require('../services/tmdb');
 
 router.get('/', async (req, res) => {
-  let { title, season, episode, tmdbId } = req.query;
+  let { title, season, episode, tmdbId, year } = req.query;
   if (!title) {
     return res.status(400).send('Missing required parameter: title');
   }
@@ -14,9 +15,10 @@ router.get('/', async (req, res) => {
 
     title = title.replace("'","");
     let imdbIdFilter = null;
+    const isSeries = season ? true : false;
 
     if (tmdbId) {
-      const mediaType = req.query.season ? 'tv' : 'movie';
+      const mediaType = isSeries ? 'tv' : 'movie';
       imdbIdFilter = await getImdbIdFromTmdbId(tmdbId, mediaType);
     }
 
@@ -30,6 +32,8 @@ router.get('/', async (req, res) => {
     if(imdbIdFilter){
       torrents = torrents.filter(t => t.imdb === imdbIdFilter || t.imdb === "");
       allSubs = await OpenSubtitles.search(imdbIdFilter, season, episode);
+      let ktuvitSubs = await Ktuvit.getSubtitles(imdbIdFilter,title,year,season,episode,isSeries);
+      allSubs.push(...ktuvitSubs);
     }
     else{
       const imdbIds = [...new Set(torrents.map(t => t.imdb).filter(Boolean))];

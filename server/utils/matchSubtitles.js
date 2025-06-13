@@ -49,12 +49,16 @@ module.exports = function matchSubtitlesMultiLang(videos, subtitles) {
       }
 
       if (bestMatch && highestScore >= 0.75) {
+        const files = bestMatch.attributes?.files;
         subtitlesPerLang[lang] = {
           release: bestMatch.attributes.release,
           matchScore: Number(highestScore.toFixed(2)),
-          file_id: bestMatch.attributes.files[0]?.file_id || null,
+          file_id: Array.isArray(files) && files.length > 0 ? files[0].file_id : null,
+          ktuvit_id: bestMatch.attributes.ktuvit_id || null,
+          filmID: bestMatch.attributes.filmID || null
         };
       }
+      
     }
 
     return {

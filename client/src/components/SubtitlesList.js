@@ -19,7 +19,8 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import DownloadIcon from '@mui/icons-material/Download';
-import { downloadSubtitle } from '../services/api';
+import { downloadSubtitleForOpenSubtitles } from '../services/api';
+import { downloadSubtitleForKtuvit } from '../services/api';
 
 const normalize = (str) =>
     str.toLowerCase().replace(/[^a-z0-9]+/gi, ' ').trim().split(/\s+/);
@@ -30,10 +31,14 @@ const SubtitlesList = ({ subtitles, query = '' }) => {
 
   const handleSubtitleDownload = async (subtitle) => {
     try {
-      const fileId = subtitle.attributes.files[0]?.file_id;
+      const files = subtitle.attributes?.files;
+      const fileId = Array.isArray(files) && files.length > 0 ? files[0].file_id : null;
       const release = subtitle.attributes.release;
-      if (fileId) {
-        await downloadSubtitle(fileId, release);
+      if(fileId){
+          await downloadSubtitleForOpenSubtitles(fileId, release);
+      }
+      else if(subtitle.attributes.ktuvit_id){
+          await downloadSubtitleForKtuvit(subtitle.attributes.filmID,subtitle.attributes.ktuvit_id,release)
       }
     } catch (err) {
       console.error('Subtitle download failed:', err);
