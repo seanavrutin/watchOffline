@@ -19,9 +19,9 @@ export const searchTorrentsAndSubs = async (title, isSeries, season, episode, tm
 };
 
 
-export const downloadSubtitle = async (file_id, release) => {
+export const downloadSubtitleForOpenSubtitles = async (file_id, release) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/downloadSub`, {
+      const res = await fetch(`${API_BASE_URL}/downloadSub/openSubtitles`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ file_id }),
@@ -41,6 +41,31 @@ export const downloadSubtitle = async (file_id, release) => {
       console.error('Subtitle download failed:', err);
     }
 };
+
+export const downloadSubtitleForKtuvit = async (filmID,ktuvit_id,release) => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/downloadSub/ktuvit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filmID,ktuvit_id,release }),
+      responseType: 'blob'
+    });
+
+    const blob = new Blob([res.data], { type: 'application/octet-stream' });
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = release + '.srt';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('Subtitle download failed:', err);
+  }
+};
+
 
 export const searchTmdb = async (query) => {
     const res = await axios.get(`${API_BASE_URL}/tmdb/search?q=${encodeURIComponent(query)}`);
