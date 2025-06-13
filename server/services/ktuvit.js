@@ -25,7 +25,7 @@ class Ktuvit {
         let filmID = await this.getFilmID(imdbID,title,year,season, episode,isSeries);
 
         if(!filmID){
-            return {};
+            return undefined;
         }
 
         let subtitles = isSeries ? await this.getSubtitlesForSeries(filmID,season,episode) : await this.getSubtitlesForMovie(filmID);
@@ -61,7 +61,7 @@ class Ktuvit {
         const searchRes = await client.post('https://www.ktuvit.me/Services/ContentProvider.svc/SearchPage_search', searchBody, headers);
 
         const parsed = JSON.parse(searchRes.data.d);
-        const film = parsed.Films.find(f => f.ImdbID === imdbID);
+        const film = parsed.Films.find(f => f.ImdbID === imdbID || f.IMDB_Link.includes(imdbID));
         if (!film) return undefined;
         return film.ID;
     }
