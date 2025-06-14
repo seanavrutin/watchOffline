@@ -34,6 +34,8 @@ function MainTab() {
     const paddedSeason = season.padStart(2, '0');
     const paddedEpisode = episode.padStart(2, '0');
 
+    setAllTorrents([]);
+    setAllSubs([]);
     setLoadingResults(true);
 
     try {
@@ -103,21 +105,8 @@ function MainTab() {
             )
           )}
 
-            {/* <ToggleButtonGroup
-                value={isSeries ? 'series' : 'movie'}
-                exclusive
-                onChange={(e, value) => {
-                    if (value !== null) setIsSeries(value === 'series');
-                }}
-                size="small"
-                sx={{ height: 40 }}
-            >
-                <ToggleButton value="movie"  sx={{ textTransform: 'none' }}>Movie</ToggleButton>
-                <ToggleButton value="series"  sx={{ textTransform: 'none' }}>Series</ToggleButton>
-            </ToggleButtonGroup> */}
-
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Button disabled={loadingResults} variant="contained" onClick={handleSearch}>
+            <Button disabled={loadingResults || selectedItem == null} variant="contained" onClick={handleSearch}>
               Search
             </Button>
           </Box>

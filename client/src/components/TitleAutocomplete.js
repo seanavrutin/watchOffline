@@ -24,40 +24,41 @@ function TitleAutocomplete({ setTitle, setIsSeries, setSelectedItem }) {
 
       if (!inputChanged) return;
     
-        const interval = setInterval(async () => {
-          const now = Date.now();
-          if (now - lastTypeTimeRef.current >= 500) {
-            setInputChanged(false);
-            const query = titleRef.current;
-    
-            if (!query || query.length < 2) {
-              setOptions([]);
-              return;
-            }
-    
-            setLoading(true);
-            try {
-              const res = await searchTmdb(query);
-              setOptions(res);
-            } catch (err) {
-              console.error('TMDb search failed:', err);
-              setOptions([]);
-            } finally {
-              setLoading(false);
-            }
-    
-            clearInterval(interval);
+      const interval = setInterval(async () => {
+        const now = Date.now();
+        if (now - lastTypeTimeRef.current >= 500) {
+          setInputChanged(false);
+          const query = titleRef.current;
+  
+          if (!query || query.length < 2) {
+            setOptions([]);
+            return;
           }
-        }, 100);
-    
-        return () => clearInterval(interval);
-      }, [inputChanged]);
+  
+          setLoading(true);
+          try {
+            const res = await searchTmdb(query);
+            setOptions(res);
+          } catch (err) {
+            console.error('TMDb search failed:', err);
+            setOptions([]);
+          } finally {
+            setLoading(false);
+          }
+  
+          clearInterval(interval);
+        }
+      }, 100);
+  
+      return () => clearInterval(interval);
+    }, [inputChanged]);
     
       const handleInputChange = (e, value) => {
         setTitle(value);
         titleRef.current = value;
         lastTypeTimeRef.current = Date.now();
         setInputChanged(true);
+        setSelectedItem(null);
       };
       
       const saveToLocalStorage = (val) => {
