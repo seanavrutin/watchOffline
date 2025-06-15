@@ -1,6 +1,8 @@
 const express = require('express');
 const axios = require('axios');
 const router = express.Router();
+const { getTvInfo } = require('../services/tmdb');
+
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 
@@ -29,6 +31,20 @@ router.get('/search', async (req, res) => {
     res.json(results);
   } catch (err) {
     console.error('TMDb API error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch from TMDb' });
+  }
+});
+
+router.get('/tvInfo', async (req, res) => {
+  const tmdbId = req.query.tmdbId;
+  if (!tmdbId) return res.status(400).json({ error: 'Missing query' });
+
+  let tvInfo = await getTvInfo(tmdbId);
+  
+  if(tvInfo){
+    res.json(tvInfo)
+  }
+  else{
     res.status(500).json({ error: 'Failed to fetch from TMDb' });
   }
 });

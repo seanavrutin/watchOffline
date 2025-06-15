@@ -1,18 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {Autocomplete,Avatar,Box,TextField,Typography,} from '@mui/material';
-import axios from 'axios';
 import CircularProgress from '@mui/material/CircularProgress';
 import { searchTmdb } from '../services/api';
+import { getTvInfo } from '../services/api';
 
 
-function TitleAutocomplete({ setTitle, setIsSeries, setSelectedItem }) {
+function TitleAutocomplete({ setTitle, setIsSeries, setSelectedItem, setSeasons }) {
 
     const [options, setOptions] = useState([]);
-    const [inputChanged, setInputChanged] = useState(false);
+    // const [inputChanged, setInputChanged] = useState(false);
     const lastTypeTimeRef = useRef(0);
     const titleRef = useRef('');
     const [loading, setLoading] = useState(false);
-
 
     useEffect(() => {
 
@@ -22,22 +21,24 @@ function TitleAutocomplete({ setTitle, setIsSeries, setSelectedItem }) {
         return;
       }
 
-      if (!inputChanged) return;
+      if (!titleRef.current || titleRef.current.length < 2) {
+        setOptions([]);
+        return;
+      }
+
     
       const interval = setInterval(async () => {
         const now = Date.now();
         if (now - lastTypeTimeRef.current >= 500) {
-          setInputChanged(false);
-          const query = titleRef.current;
   
-          if (!query || query.length < 2) {
+          if (!titleRef.current || titleRef.current.length < 2) {
             setOptions([]);
             return;
           }
   
           setLoading(true);
           try {
-            const res = await searchTmdb(query);
+            const res = await searchTmdb(titleRef.current);
             setOptions(res);
           } catch (err) {
             console.error('TMDb search failed:', err);
@@ -51,13 +52,12 @@ function TitleAutocomplete({ setTitle, setIsSeries, setSelectedItem }) {
       }, 100);
   
       return () => clearInterval(interval);
-    }, [inputChanged]);
+    },[titleRef.current]);
     
       const handleInputChange = (e, value) => {
         setTitle(value);
         titleRef.current = value;
         lastTypeTimeRef.current = Date.now();
-        setInputChanged(true);
         setSelectedItem(null);
       };
       
@@ -75,6 +75,15 @@ function TitleAutocomplete({ setTitle, setIsSeries, setSelectedItem }) {
         localStorage.setItem('recentSearches', JSON.stringify(updated.slice(0, 5)));
       };
 
+      const saveSeasonsEpisodesData = async (val) => {
+        if(val.type == 'tv'){
+          let tvInfo = await getTvInfo(val.id);
+          if(!tvInfo.error){
+            setSeasons(tvInfo.seasons);
+          }
+        }
+      };
+
 
   return (
     <Autocomplete
@@ -84,6 +93,7 @@ function TitleAutocomplete({ setTitle, setIsSeries, setSelectedItem }) {
       onInputChange={handleInputChange}
       onChange={(e, val) => {
         if (val) {
+          saveSeasonsEpisodesData(val);
           setTitle(val.title);
           setIsSeries(val.type === 'tv');
           setSelectedItem(val);
