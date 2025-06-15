@@ -8,12 +8,17 @@ import { useTheme } from '@mui/material/styles';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import { searchTorrentsAndSubs } from '../services/api';
+import {Autocomplete} from '@mui/material';
+import CheckIcon from '@mui/icons-material/Check';
+
+
 
 function MainTab() {
   const [title, setTitle] = useState('');
   const [isSeries, setIsSeries] = useState(false);
   const [season, setSeason] = useState('');
   const [episode, setEpisode] = useState('');
+  const [seasons, setSeasons] = useState([]);
   const [results, setResults] = useState({});
   const [allTorrents, setAllTorrents] = useState([]);
   const [allSubs, setAllSubs] = useState([]);
@@ -25,6 +30,11 @@ function MainTab() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
 
+  const isEpisodeDownloaded = (title, season, episode) => {
+    const data = JSON.parse(localStorage.getItem("downloadedEpisodes") || "{}");
+    return data?.[title]?.[season]?.includes(episode);
+  };
+  
   const handleSearch = async () => {
     setSearchAttempted(true);
     if(isSeries && (!episode || !season)){
@@ -61,12 +71,13 @@ function MainTab() {
             setTitle={setTitle}
             setIsSeries={setIsSeries}
             setSelectedItem={setSelectedItem}
+            setSeasons={setSeasons}
           />
 
           {isSeries && (
             isMobile ? (
               <Box sx={{ display: 'flex', gap: 2 }}>
-                <TextField
+                {/* <TextField
                   label="Season"
                   fullWidth
                   error={isSeries && searchAttempted && !season}
@@ -81,11 +92,71 @@ function MainTab() {
                   helperText={isSeries && searchAttempted && !episode ? 'Required' : ''}
                   value={episode}
                   onChange={(e) => setEpisode(e.target.value)}
+                /> */}
+                <Autocomplete
+                  fullWidth
+                  options={seasons.filter(s => s.air_date !== null)}
+                  getOptionLabel={(option) => option.season_number.toString()}
+                  value={seasons.find(s => s.season_number === Number(season)) || null}
+                  onInputChange={(e, newValue) => {
+                    setSeason(newValue);
+                    setEpisode('');
+                  }}
+                  onChange={(e, newValue) => {
+                    setSeason(newValue ? newValue.season_number.toString() : '');
+                    setEpisode('');
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Season"
+                      fullWidth
+                      error={isSeries && searchAttempted && !season}
+                      helperText={isSeries && searchAttempted && !season ? 'Required' : ''}
+                    />
+                  )}
+                />
+
+                <Autocomplete
+                  fullWidth
+                  options={
+                    (() => {
+                      const selectedSeason = seasons.find(s => s.season_number === Number(season));
+                      return selectedSeason
+                        ? Array.from({ length: selectedSeason.episode_count }, (_, i) => (i + 1).toString().padStart(2, '0'))
+                        : [];
+                    })()
+                  }
+                  value={episode}
+                  onInputChange={(e, newValue) => setEpisode(newValue || '')}
+                  onChange={(e, newValue) => setEpisode(newValue || '')}
+                  filterOptions={(options, state) => {
+                    let input = state.inputValue.trim();
+                    if(input === "") return options;
+                    return options.filter(opt => opt === input || opt === input.padStart(2, '0'));
+                  }}
+                  renderOption={(props, option) => (
+                    <li {...props}>
+                      {option}
+                      {isEpisodeDownloaded(title, season, option) && (
+                        <CheckIcon fontSize="small" sx={{ marginLeft: 'auto', color: 'green' }} />
+                      )}
+                    </li>
+                  )}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Episode"
+                      fullWidth
+                      error={isSeries && searchAttempted && !episode}
+                      helperText={isSeries && searchAttempted && !episode ? 'Required' : ''}
+                    />
+                  )}
                 />
               </Box>
             ) : (
               <Box sx={{ display: 'flex', gap: 2 }}>
-                <TextField
+                {/* <TextField
                   label="Season"
                   fullWidth
                   error={isSeries && searchAttempted && !season}
@@ -100,6 +171,66 @@ function MainTab() {
                   helperText={isSeries && searchAttempted && !episode ? 'Required' : ''}
                   value={episode}
                   onChange={(e) => setEpisode(e.target.value)}
+                /> */}
+                <Autocomplete
+                  fullWidth
+                  options={seasons.filter(s => s.air_date !== null)}
+                  getOptionLabel={(option) => option.season_number.toString()}
+                  value={seasons.find(s => s.season_number === Number(season)) || null}
+                  onInputChange={(e, newValue) => {
+                    setSeason(newValue);
+                    setEpisode('');
+                  }}
+                  onChange={(e, newValue) => {
+                    setSeason(newValue ? newValue.season_number.toString() : '');
+                    setEpisode('');
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Season"
+                      fullWidth
+                      error={isSeries && searchAttempted && !season}
+                      helperText={isSeries && searchAttempted && !season ? 'Required' : ''}
+                    />
+                  )}
+                />
+
+                <Autocomplete
+                  fullWidth
+                  options={
+                    (() => {
+                      const selectedSeason = seasons.find(s => s.season_number === Number(season));
+                      return selectedSeason
+                        ? Array.from({ length: selectedSeason.episode_count }, (_, i) => (i + 1).toString().padStart(2, '0'))
+                        : [];
+                    })()
+                  }
+                  value={episode}
+                  onInputChange={(e, newValue) => setEpisode(newValue || '')}
+                  onChange={(e, newValue) => setEpisode(newValue || '')}
+                  filterOptions={(options, state) => {
+                    let input = state.inputValue.trim();
+                    if(input === "") return options;
+                    return options.filter(opt => opt === input || opt === input.padStart(2, '0'));
+                  }}
+                  renderOption={(props, option) => (
+                    <li {...props}>
+                      {option}
+                      {isEpisodeDownloaded(title, season, option) && (
+                        <CheckIcon fontSize="small" sx={{ marginLeft: 'auto', color: 'green' }} />
+                      )}
+                    </li>
+                  )}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Episode"
+                      fullWidth
+                      error={isSeries && searchAttempted && !episode}
+                      helperText={isSeries && searchAttempted && !episode ? 'Required' : ''}
+                    />
+                  )}
                 />
               </Box>
             )
@@ -144,7 +275,7 @@ function MainTab() {
           </Box>
 
           {tab === 'torrents' && (
-            <ResultsList results={allTorrents} />
+            <ResultsList results={allTorrents} title={title} season={season} episode={episode}/>
           )}
           {tab === 'subs' && (
             <SubtitlesList subtitles={allSubs} query={title} />

@@ -68,6 +68,12 @@ export const downloadSubtitleForKtuvit = async (filmID,ktuvit_id,release) => {
 
 
 export const searchTmdb = async (query) => {
-    const res = await axios.get(`${API_BASE_URL}/tmdb/search?q=${encodeURIComponent(query)}`);
-    return res.data;
-  };
+  const res = await axios.get(`${API_BASE_URL}/tmdb/search?q=${encodeURIComponent(query)}`);
+  return res.data;
+};
+
+export const getTvInfo = async (tmdbId) => {
+  const res = await axios.get(`${API_BASE_URL}/tmdb/tvInfo?tmdbId=${tmdbId}`);
+  return res.data;
+};
+

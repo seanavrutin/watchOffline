@@ -12,4 +12,15 @@ async function getImdbIdFromTmdbId(tmdbId, mediaType = 'movie') {
   }
 }
 
-module.exports = { getImdbIdFromTmdbId };
+async function getTvInfo(tmdbId) {
+  try {
+    const url = `https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${TMDB_API_KEY}`;
+    const res = await axios.get(url);
+    return res.data || { error: 'Failed to get seasons data from TMDb' };
+  } catch (err) {
+    console.error('Failed to get seasons data from TMDb:', err.message);
+    return undefined;
+  }
+}
+
+module.exports = { getImdbIdFromTmdbId,getTvInfo };

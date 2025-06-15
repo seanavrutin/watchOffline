@@ -43,9 +43,24 @@ const handleSubtitleDownload = async (subtitle) => {
     }
   };
 
-const ResultsList = ({ results }) => {
+const ResultsList = ({ results, title, season, episode }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  const handleLocalStorage = () => {
+    const key = "downloadedEpisodes";
+    const data = JSON.parse(localStorage.getItem(key) || "{}");
+
+    if (!data[title]) data[title] = {};
+    if (!data[title][season]) data[title][season] = [];
+    if (!data[title][season].includes(episode)) {
+        data[title][season].push(episode);
+        data[title][season].sort((a, b) => a - b);
+    }
+
+    localStorage.setItem(key, JSON.stringify(data));
+  };
+
 
   if (!results.length) return null;
 
@@ -86,7 +101,7 @@ const ResultsList = ({ results }) => {
                         <Typography color="text.secondary" fontSize={16}>|</Typography>
                     )}
 
-                    <IconButton href={item.magnetLink} target="_blank" rel="noopener noreferrer">
+                    <IconButton onClick={handleLocalStorage()} href={item.magnetLink} target="_blank" rel="noopener noreferrer">
                         <DownloadIcon />
                     </IconButton>
                     </Box>
