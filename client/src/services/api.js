@@ -67,6 +67,37 @@ export const downloadSubtitleForKtuvit = async (filmID,ktuvit_id,release) => {
 };
 
 
+export const saveSubToDropzone = async ({ file_id, filmID, ktuvit_id, release }) => {
+  const isOpenSub = !!file_id;
+  const endpoint = isOpenSub
+    ? '/dropzone/subtitle/openSubtitles'
+    : '/dropzone/subtitle/ktuvit';
+
+  const body = isOpenSub
+    ? { file_id, release }
+    : { filmID, ktuvit_id, release };
+
+  const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) throw new Error('Failed to save subtitle');
+  return res.json();
+};
+
+export const saveTorrentToDropzone = async (magnetLink, name) => {
+  const res = await fetch(`${API_BASE_URL}/dropzone/torrent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ magnetLink, name }),
+  });
+
+  if (!res.ok) throw new Error('Failed to save torrent');
+  return res.json();
+};
+
 export const searchTmdb = async (query) => {
   const res = await axios.get(`${API_BASE_URL}/tmdb/search?q=${encodeURIComponent(query)}`);
   return res.data;

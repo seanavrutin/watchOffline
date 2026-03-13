@@ -3,12 +3,15 @@ import TitleAutocomplete from '../components/TitleAutocomplete';
 import DotsLoader from '../components/DotsLoader';
 import ResultsList from '../components/ResultsList';
 import SubtitlesList from '../components/SubtitlesList';
-import {Box,TextField,Button,useMediaQuery,} from '@mui/material';
+import {
+  Box, TextField, Button, useMediaQuery, Autocomplete,
+  Switch, Dialog, DialogTitle, DialogContent, DialogActions,
+  Snackbar, Alert, Typography,
+} from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import { searchTorrentsAndSubs } from '../services/api';
-import {Autocomplete} from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
 
 
@@ -26,8 +29,43 @@ function MainTab() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [searchAttempted, setSearchAttempted] = useState(false);
   const [tab, setTab] = useState('torrents');
+  const [dropzoneActive, setDropzoneActive] = useState(false);
+  const [showPinDialog, setShowPinDialog] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  const dropzoneUnlocked = localStorage.getItem('dropzoneUnlocked') === 'true';
+
+  const handleDropzoneToggle = () => {
+    if (dropzoneActive) {
+      setDropzoneActive(false);
+      return;
+    }
+    if (dropzoneUnlocked) {
+      setDropzoneActive(true);
+    } else {
+      setShowPinDialog(true);
+    }
+  };
+
+  const handlePinSubmit = () => {
+    if (pinInput === process.env.REACT_APP_DROPZONE_PIN) {
+      localStorage.setItem('dropzoneUnlocked', 'true');
+      setDropzoneActive(true);
+      setShowPinDialog(false);
+      setPinInput('');
+      setPinError(false);
+    } else {
+      setPinError(true);
+    }
+  };
+
+  const notify = (message, severity = 'success') => {
+    setSnackbar({ open: true, message, severity });
+  };
   
 
   const isEpisodeDownloaded = (title, season, episode) => {
@@ -236,10 +274,27 @@ function MainTab() {
             )
           )}
 
-          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2 }}>
             <Button disabled={loadingResults || selectedItem == null} variant="contained" onClick={handleSearch}>
               Search
             </Button>
+            <Box display="flex" alignItems="center" gap={0.5}>
+              <Typography
+                variant="body2"
+                sx={{ color: dropzoneActive ? '#00897b' : 'text.secondary', fontWeight: dropzoneActive ? 600 : 400 }}
+              >
+                DropZone
+              </Typography>
+              <Switch
+                size="small"
+                checked={dropzoneActive}
+                onChange={handleDropzoneToggle}
+                sx={{
+                  '& .MuiSwitch-switchBase.Mui-checked': { color: '#00897b' },
+                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#00897b' },
+                }}
+              />
+            </Box>
           </Box>
         </Box>
       </Box>
@@ -275,12 +330,23 @@ function MainTab() {
           </Box>
 
           {tab === 'torrents' && (
-            <ResultsList results={allTorrents} title={title} season={season} episode={episode}/>
+            <ResultsList
+              results={allTorrents}
+              title={title}
+              season={season}
+              episode={episode}
+              dropzoneActive={dropzoneActive}
+              onNotify={notify}
+            />
           )}
           {tab === 'subs' && (
-            <SubtitlesList subtitles={allSubs} query={title} />
+            <SubtitlesList
+              subtitles={allSubs}
+              query={title}
+              dropzoneActive={dropzoneActive}
+              onNotify={notify}
+            />
           )}
-
         </>
       )}
       {allTorrents.length === 0 && (
@@ -290,6 +356,46 @@ function MainTab() {
           style={{ width: 350, opacity: 0.7 }}
         />
       )}
+
+      <Dialog
+        open={showPinDialog}
+        onClose={() => { setShowPinDialog(false); setPinInput(''); setPinError(false); }}
+      >
+        <DialogTitle>Enter DropZone PIN</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="PIN"
+            type="password"
+            fullWidth
+            value={pinInput}
+            onChange={(e) => { setPinInput(e.target.value); setPinError(false); }}
+            onKeyDown={(e) => { if (e.key === 'Enter') handlePinSubmit(); }}
+            error={pinError}
+            helperText={pinError ? 'Invalid PIN' : ''}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setShowPinDialog(false); setPinInput(''); setPinError(false); }}>Cancel</Button>
+          <Button onClick={handlePinSubmit} variant="contained">Confirm</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          severity={snackbar.severity}
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+          variant="filled"
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

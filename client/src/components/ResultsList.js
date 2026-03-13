@@ -19,8 +19,7 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import DownloadIcon from '@mui/icons-material/Download';
-import { downloadSubtitleForOpenSubtitles } from '../services/api';
-import { downloadSubtitleForKtuvit } from '../services/api';
+import { downloadSubtitleForOpenSubtitles, downloadSubtitleForKtuvit, saveSubToDropzone, saveTorrentToDropzone } from '../services/api';
 
 const formatSize = (sizeStr) => {
   const [value] = sizeStr.split(' ');
@@ -43,9 +42,32 @@ const handleSubtitleDownload = async (subtitle) => {
     }
   };
 
-const ResultsList = ({ results, title, season, episode }) => {
+const ResultsList = ({ results, title, season, episode, dropzoneActive, onNotify }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  const handleSubDownload = async (subtitle) => {
+    if (dropzoneActive) {
+      try {
+        const result = await saveSubToDropzone(subtitle);
+        onNotify(`Saved ${result.filename} to DropZone`);
+      } catch (err) {
+        onNotify('Failed to save subtitle to DropZone', 'error');
+      }
+    } else {
+      handleSubtitleDownload(subtitle);
+    }
+  };
+
+  const handleTorrentToDropzone = async (item) => {
+    try {
+      const result = await saveTorrentToDropzone(item.magnetLink, item.title);
+      onNotify(`Saved ${result.filename} to DropZone`);
+      handleLocalStorage();
+    } catch (err) {
+      onNotify('Failed to save torrent to DropZone', 'error');
+    }
+  };
 
   const handleLocalStorage = () => {
     const key = "downloadedEpisodes";
@@ -84,14 +106,14 @@ const ResultsList = ({ results, title, season, episode }) => {
                     <Box display="flex" alignItems="center" gap={1}>
                     {item.subtitles?.he && (
                         <Tooltip title={item.subtitles.he.release}>
-                        <IconButton onClick={() => handleSubtitleDownload(item.subtitles.he)}>
+                        <IconButton onClick={() => handleSubDownload(item.subtitles.he)}>
                             <Avatar src="https://flagcdn.com/w40/il.png" sx={{ width: 24, height: 24 }} />
                         </IconButton>
                         </Tooltip>
                     )}
                     {item.subtitles?.en && (
                         <Tooltip title={item.subtitles.en.release}>
-                        <IconButton onClick={() => handleSubtitleDownload(item.subtitles.en)}>
+                        <IconButton onClick={() => handleSubDownload(item.subtitles.en)}>
                             <Avatar src="https://flagcdn.com/w40/gb.png" sx={{ width: 24, height: 24 }} />
                         </IconButton>
                         </Tooltip>
@@ -101,9 +123,15 @@ const ResultsList = ({ results, title, season, episode }) => {
                         <Typography color="text.secondary" fontSize={16}>|</Typography>
                     )}
 
-                    <IconButton onClick={handleLocalStorage()} href={item.magnetLink} target="_blank" rel="noopener noreferrer">
+                    {dropzoneActive ? (
+                      <IconButton onClick={() => handleTorrentToDropzone(item)}>
                         <DownloadIcon />
-                    </IconButton>
+                      </IconButton>
+                    ) : (
+                      <IconButton onClick={handleLocalStorage} href={item.magnetLink} target="_blank" rel="noopener noreferrer">
+                        <DownloadIcon />
+                      </IconButton>
+                    )}
                     </Box>
                 </Box>
                 </CardContent>
@@ -135,22 +163,28 @@ const ResultsList = ({ results, title, season, episode }) => {
                     <TableCell sx={{ color: 'green' }}>{item.seeders}</TableCell>
                     <TableCell sx={{ color: 'red' }}>{item.leechers}</TableCell>
                     <TableCell>
-                    <IconButton href={item.magnetLink} target="_blank" rel="noopener noreferrer" size="small">
+                    {dropzoneActive ? (
+                      <IconButton onClick={() => handleTorrentToDropzone(item)} size="small">
                         <DownloadIcon fontSize="small" />
-                    </IconButton>
+                      </IconButton>
+                    ) : (
+                      <IconButton href={item.magnetLink} target="_blank" rel="noopener noreferrer" size="small">
+                        <DownloadIcon fontSize="small" />
+                      </IconButton>
+                    )}
                     </TableCell>
                     <TableCell>
                     <Box display="flex" gap={1}>
                         {item.subtitles?.he && (
                         <Tooltip title={item.subtitles.he.release}>
-                            <IconButton onClick={() => handleSubtitleDownload(item.subtitles.he)} size="small">
+                            <IconButton onClick={() => handleSubDownload(item.subtitles.he)} size="small">
                             <Avatar src="https://flagcdn.com/w40/il.png" sx={{ width: 24, height: 24 }} />
                             </IconButton>
                         </Tooltip>
                         )}
                         {item.subtitles?.en && (
                         <Tooltip title={item.subtitles.en.release}>
-                            <IconButton onClick={() => handleSubtitleDownload(item.subtitles.en)} size="small">
+                            <IconButton onClick={() => handleSubDownload(item.subtitles.en)} size="small">
                             <Avatar src="https://flagcdn.com/w40/gb.png" sx={{ width: 24, height: 24 }} />
                             </IconButton>
                         </Tooltip>

@@ -19,13 +19,12 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import DownloadIcon from '@mui/icons-material/Download';
-import { downloadSubtitleForOpenSubtitles } from '../services/api';
-import { downloadSubtitleForKtuvit } from '../services/api';
+import { downloadSubtitleForOpenSubtitles, downloadSubtitleForKtuvit, saveSubToDropzone } from '../services/api';
 
 const normalize = (str) =>
     str.toLowerCase().replace(/[^a-z0-9]+/gi, ' ').trim().split(/\s+/);
 
-const SubtitlesList = ({ subtitles, query = '' }) => {
+const SubtitlesList = ({ subtitles, query = '', dropzoneActive, onNotify }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -34,6 +33,18 @@ const SubtitlesList = ({ subtitles, query = '' }) => {
       const files = subtitle.attributes?.files;
       const fileId = Array.isArray(files) && files.length > 0 ? files[0].file_id : null;
       const release = subtitle.attributes.release;
+
+      if (dropzoneActive) {
+        const result = await saveSubToDropzone({
+          file_id: fileId,
+          filmID: subtitle.attributes.filmID,
+          ktuvit_id: subtitle.attributes.ktuvit_id,
+          release,
+        });
+        onNotify(`Saved ${result.filename} to DropZone`);
+        return;
+      }
+
       if(fileId){
           await downloadSubtitleForOpenSubtitles(fileId, release);
       }
@@ -41,7 +52,11 @@ const SubtitlesList = ({ subtitles, query = '' }) => {
           await downloadSubtitleForKtuvit(subtitle.attributes.filmID,subtitle.attributes.ktuvit_id,release)
       }
     } catch (err) {
-      console.error('Subtitle download failed:', err);
+      if (dropzoneActive) {
+        onNotify('Failed to save subtitle to DropZone', 'error');
+      } else {
+        console.error('Subtitle download failed:', err);
+      }
     }
   };
 

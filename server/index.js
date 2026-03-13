@@ -6,7 +6,7 @@ const app = express();
 const searchRoute = require('./routes/search');
 const downloadSubRoute = require('./routes/downloadSub');
 const tmdbRoutes = require('./routes/tmdb');
-
+const dropzoneRoute = require('./routes/saveToDropzone');
 
 app.use(cors());
 app.use(express.json());
@@ -14,6 +14,7 @@ app.use(express.json());
 app.use('/api/search', searchRoute);
 app.use('/api/downloadSub', downloadSubRoute);
 app.use('/api/tmdb', tmdbRoutes);
+app.use('/api/dropzone', dropzoneRoute);
 
 
 const PORT = process.env.PORT || 3001;
