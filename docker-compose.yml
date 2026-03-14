@@ -1,16 +1,10 @@
 version: '3.8'
 
 services:
-  client:
-    build: ./client
-    ports:
-      - "3005:80"
-    depends_on:
-      - server
-
   server:
     build: ./server
+    restart: always
     ports:
       - "3001:3001"
     volumes:
-      - E:/DropZone:/dropzone
+      - //d/DropZone:/dropzone

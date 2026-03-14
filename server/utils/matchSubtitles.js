@@ -62,6 +62,8 @@ module.exports = function matchSubtitlesMultiLang(videos, subtitles) {
     }
 
     return {
+      id: video.id,
+      infoHash: video.infoHash,
       title: video.name,
       size: video.size,
       seeders: video.seeders,

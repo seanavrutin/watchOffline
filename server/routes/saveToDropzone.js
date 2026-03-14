@@ -1,5 +1,6 @@
 const express = require('express');
 const https = require('https');
+const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const OpenSubtitles = require('../services/openSubtitles');
@@ -7,7 +8,7 @@ const Ktuvit = require('../services/ktuvit');
 const iconv = require('iconv-lite');
 const router = express.Router();
 
-const DROPZONE_PATH = '/dropzone';
+const DROPZONE_PATH = process.env.DROPZONE_PATH || '/dropzone';
 
 const sanitizeFilename = (name) => {
   return name.replace(/[^a-zA-Z0-9._\-\s\[\]()]/g, '').substring(0, 200);
@@ -68,26 +69,41 @@ router.post('/subtitle/ktuvit', async (req, res) => {
   }
 });
 
-router.post('/torrent', (req, res) => {
+router.post('/torrent', async (req, res) => {
   try {
     const { magnetLink, name } = req.body;
     if (!magnetLink) {
       return res.status(400).json({ error: 'Missing magnet link' });
     }
 
-    const filename = sanitizeFilename(name || 'torrent') + '.magnet';
-    const filePath = path.join(DROPZONE_PATH, filename);
+    const qbtUrl = process.env.QBITTORRENT_URL || 'http://localhost:8080';
+    const qbtUser = process.env.QBITTORRENT_USER || 'admin';
+    const qbtPass = process.env.QBITTORRENT_PASS || 'adminadmin';
 
-    fs.writeFile(filePath, magnetLink, 'utf8', (err) => {
-      if (err) {
-        console.error('Failed to write magnet to dropzone:', err);
-        return res.status(500).json({ error: 'Failed to save file' });
+    const loginRes = await axios.post(
+      `${qbtUrl}/api/v2/auth/login`,
+      `username=${encodeURIComponent(qbtUser)}&password=${encodeURIComponent(qbtPass)}`,
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
+
+    const cookie = loginRes.headers['set-cookie']?.[0];
+
+    await axios.post(
+      `${qbtUrl}/api/v2/torrents/add`,
+      `urls=${encodeURIComponent(magnetLink)}`,
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Cookie': cookie || '',
+        },
       }
-      res.json({ success: true, filename });
-    });
+    );
+
+    const filename = sanitizeFilename(name || 'torrent');
+    res.json({ success: true, filename });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: 'Failed to save torrent' });
+    res.status(500).json({ error: 'Failed to add torrent to qBittorrent' });
   }
 });
 
