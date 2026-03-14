@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Card,
@@ -16,6 +16,7 @@ import {
   Avatar,
   Tooltip,
   useMediaQuery,
+  CircularProgress,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -45,6 +46,7 @@ const handleSubtitleDownload = async (subtitle) => {
 const ResultsList = ({ results, title, season, episode, dropzoneActive, onNotify }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [loadingItems, setLoadingItems] = useState(new Set());
 
   const handleSubDownload = async (subtitle) => {
     if (dropzoneActive) {
@@ -59,13 +61,24 @@ const ResultsList = ({ results, title, season, episode, dropzoneActive, onNotify
     }
   };
 
-  const handleTorrentToDropzone = async (item) => {
+  const handleTorrentToDropzone = async (item, idx) => {
+    setLoadingItems(prev => new Set(prev).add(idx));
     try {
-      const result = await saveTorrentToDropzone(item.magnetLink, item.title);
-      onNotify(`Saved ${result.filename} to DropZone`);
+      const result = await saveTorrentToDropzone(item.magnetLink, item.infoHash, item.title, item.subtitles);
+      const subCount = result.subtitlesSaved?.length || 0;
+      const msg = subCount > 0
+        ? `Added ${result.filename} + saved ${subCount} subtitle${subCount > 1 ? 's' : ''}`
+        : `Added ${result.filename} to qBittorrent`;
+      onNotify(msg);
       handleLocalStorage();
     } catch (err) {
-      onNotify('Failed to save torrent to DropZone', 'error');
+      onNotify('Failed to add torrent', 'error');
+    } finally {
+      setLoadingItems(prev => {
+        const next = new Set(prev);
+        next.delete(idx);
+        return next;
+      });
     }
   };
 
@@ -124,8 +137,8 @@ const ResultsList = ({ results, title, season, episode, dropzoneActive, onNotify
                     )}
 
                     {dropzoneActive ? (
-                      <IconButton onClick={() => handleTorrentToDropzone(item)}>
-                        <DownloadIcon />
+                      <IconButton onClick={() => handleTorrentToDropzone(item, idx)} disabled={loadingItems.has(idx)}>
+                        {loadingItems.has(idx) ? <CircularProgress size={24} /> : <DownloadIcon />}
                       </IconButton>
                     ) : (
                       <IconButton onClick={handleLocalStorage} href={item.magnetLink} target="_blank" rel="noopener noreferrer">
@@ -164,8 +177,8 @@ const ResultsList = ({ results, title, season, episode, dropzoneActive, onNotify
                     <TableCell sx={{ color: 'red' }}>{item.leechers}</TableCell>
                     <TableCell>
                     {dropzoneActive ? (
-                      <IconButton onClick={() => handleTorrentToDropzone(item)} size="small">
-                        <DownloadIcon fontSize="small" />
+                      <IconButton onClick={() => handleTorrentToDropzone(item, idx)} size="small" disabled={loadingItems.has(idx)}>
+                        {loadingItems.has(idx) ? <CircularProgress size={18} /> : <DownloadIcon fontSize="small" />}
                       </IconButton>
                     ) : (
                       <IconButton href={item.magnetLink} target="_blank" rel="noopener noreferrer" size="small">

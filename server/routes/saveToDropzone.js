@@ -9,39 +9,112 @@ const iconv = require('iconv-lite');
 const router = express.Router();
 
 const DROPZONE_PATH = process.env.DROPZONE_PATH || '/dropzone';
+const VIDEO_EXTENSIONS = ['.mkv', '.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm'];
 
 const sanitizeFilename = (name) => {
   return name.replace(/[^a-zA-Z0-9._\-\s\[\]()]/g, '').substring(0, 200);
 };
 
-router.post('/subtitle/openSubtitles', async (req, res) => {
-  try {
-    const { file_id, release } = req.body;
-    const result = await OpenSubtitles.download(file_id);
-    const { link: downloadLink, file_name } = result;
+// --- qBittorrent helpers ---
 
+function getQbtConfig() {
+  return {
+    url: process.env.QBITTORRENT_URL || 'http://localhost:8080',
+    user: process.env.QBITTORRENT_USER || 'admin',
+    pass: process.env.QBITTORRENT_PASS || 'adminadmin',
+  };
+}
+
+async function qbtLogin() {
+  const { url, user, pass } = getQbtConfig();
+  const res = await axios.post(
+    `${url}/api/v2/auth/login`,
+    `username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`,
+    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+  );
+  return res.headers['set-cookie']?.[0] || '';
+}
+
+async function qbtAddTorrent(cookie, magnetLink) {
+  const { url } = getQbtConfig();
+  await axios.post(
+    `${url}/api/v2/torrents/add`,
+    `urls=${encodeURIComponent(magnetLink)}`,
+    { headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Cookie': cookie } }
+  );
+}
+
+async function qbtGetFiles(cookie, hash) {
+  const { url } = getQbtConfig();
+  const res = await axios.get(
+    `${url}/api/v2/torrents/files?hash=${hash.toLowerCase()}`,
+    { headers: { 'Cookie': cookie } }
+  );
+  return res.data;
+}
+
+async function waitForFiles(cookie, hash, maxAttempts = 15, intervalMs = 2000) {
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const files = await qbtGetFiles(cookie, hash);
+      if (files && files.length > 0 && files[0].name !== '') return files;
+    } catch (e) { /* metadata not ready */ }
+    await new Promise(resolve => setTimeout(resolve, intervalMs));
+  }
+  return null;
+}
+
+function findVideoFile(files) {
+  return files
+    .filter(f => VIDEO_EXTENSIONS.some(ext => f.name.toLowerCase().endsWith(ext)))
+    .sort((a, b) => b.size - a.size)[0];
+}
+
+// --- Subtitle fetch helpers ---
+
+async function fetchOpenSubtitle(file_id) {
+  const result = await OpenSubtitles.download(file_id);
+  const { link: downloadLink } = result;
+
+  return new Promise((resolve, reject) => {
     https.get(downloadLink, (fileRes) => {
       let data = [];
-
       fileRes.on('data', (chunk) => data.push(chunk));
-
       fileRes.on('end', () => {
         const buffer = Buffer.concat(data);
         const converted = iconv.encode(buffer.toString('utf8'), 'win1255');
-        const filename = sanitizeFilename(release || file_name) + '.srt';
-        const filePath = path.join(DROPZONE_PATH, filename);
-
-        fs.writeFile(filePath, converted, (err) => {
-          if (err) {
-            console.error('Failed to write subtitle to dropzone:', err);
-            return res.status(500).json({ error: 'Failed to save file' });
-          }
-          res.json({ success: true, filename });
-        });
+        resolve(converted);
       });
-    }).on('error', (err) => {
-      console.error('Stream error:', err);
-      res.status(500).json({ error: 'Failed to download subtitle' });
+    }).on('error', reject);
+  });
+}
+
+async function fetchKtuvitSubtitle(filmID, ktuvit_id) {
+  const response = await Ktuvit.downloadSubtitle(filmID, ktuvit_id);
+  return response.data;
+}
+
+async function fetchSubtitle(sub) {
+  if (sub.file_id) return fetchOpenSubtitle(sub.file_id);
+  if (sub.ktuvit_id) return fetchKtuvitSubtitle(sub.filmID, sub.ktuvit_id);
+  return null;
+}
+
+// --- Routes ---
+
+router.post('/subtitle/openSubtitles', async (req, res) => {
+  try {
+    const { file_id, release } = req.body;
+    const data = await fetchOpenSubtitle(file_id);
+    const filename = sanitizeFilename(release) + '.srt';
+    const filePath = path.join(DROPZONE_PATH, filename);
+
+    fs.writeFile(filePath, data, (err) => {
+      if (err) {
+        console.error('Failed to write subtitle to dropzone:', err);
+        return res.status(500).json({ error: 'Failed to save file' });
+      }
+      res.json({ success: true, filename });
     });
   } catch (e) {
     console.error(e);
@@ -52,11 +125,11 @@ router.post('/subtitle/openSubtitles', async (req, res) => {
 router.post('/subtitle/ktuvit', async (req, res) => {
   try {
     const { filmID, ktuvit_id, release } = req.body;
-    const response = await Ktuvit.downloadSubtitle(filmID, ktuvit_id);
+    const data = await fetchKtuvitSubtitle(filmID, ktuvit_id);
     const filename = sanitizeFilename(release) + '.srt';
     const filePath = path.join(DROPZONE_PATH, filename);
 
-    fs.writeFile(filePath, response.data, (err) => {
+    fs.writeFile(filePath, data, (err) => {
       if (err) {
         console.error('Failed to write subtitle to dropzone:', err);
         return res.status(500).json({ error: 'Failed to save file' });
@@ -71,36 +144,56 @@ router.post('/subtitle/ktuvit', async (req, res) => {
 
 router.post('/torrent', async (req, res) => {
   try {
-    const { magnetLink, name } = req.body;
+    const { magnetLink, infoHash, name, subtitles } = req.body;
     if (!magnetLink) {
       return res.status(400).json({ error: 'Missing magnet link' });
     }
 
-    const qbtUrl = process.env.QBITTORRENT_URL || 'http://localhost:8080';
-    const qbtUser = process.env.QBITTORRENT_USER || 'admin';
-    const qbtPass = process.env.QBITTORRENT_PASS || 'adminadmin';
+    const cookie = await qbtLogin();
+    await qbtAddTorrent(cookie, magnetLink);
 
-    const loginRes = await axios.post(
-      `${qbtUrl}/api/v2/auth/login`,
-      `username=${encodeURIComponent(qbtUser)}&password=${encodeURIComponent(qbtPass)}`,
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-    );
+    const savedSubs = [];
+    const hasSubtitles = subtitles && infoHash && Object.keys(subtitles).length > 0;
 
-    const cookie = loginRes.headers['set-cookie']?.[0];
+    if (hasSubtitles) {
+      const files = await waitForFiles(cookie, infoHash);
 
-    await axios.post(
-      `${qbtUrl}/api/v2/torrents/add`,
-      `urls=${encodeURIComponent(magnetLink)}`,
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Cookie': cookie || '',
-        },
+      if (files) {
+        const videoFile = findVideoFile(files);
+
+        if (videoFile) {
+          const fullVideoPath = path.join(DROPZONE_PATH, videoFile.name);
+          const videoDir = path.dirname(fullVideoPath);
+          const videoBaseName = path.basename(videoFile.name).replace(/\.[^.]+$/, '');
+
+          fs.mkdirSync(videoDir, { recursive: true });
+
+          const langSuffix = { he: 'heb', en: 'eng' };
+
+          for (const [lang, sub] of Object.entries(subtitles)) {
+            try {
+              const data = await fetchSubtitle(sub);
+              if (data) {
+                const suffix = langSuffix[lang] || lang;
+                const subFilename = `${videoBaseName}.${suffix}.srt`;
+                const subPath = path.join(videoDir, subFilename);
+                fs.writeFileSync(subPath, data);
+                savedSubs.push(subFilename);
+              }
+            } catch (err) {
+              console.error(`Failed to save ${lang} subtitle:`, err);
+            }
+          }
+        }
       }
-    );
+    }
 
-    const filename = sanitizeFilename(name || 'torrent');
-    res.json({ success: true, filename });
+    const displayName = sanitizeFilename(name || 'torrent');
+    res.json({
+      success: true,
+      filename: displayName,
+      subtitlesSaved: savedSubs,
+    });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Failed to add torrent to qBittorrent' });

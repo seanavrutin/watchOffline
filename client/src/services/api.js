@@ -87,11 +87,11 @@ export const saveSubToDropzone = async ({ file_id, filmID, ktuvit_id, release })
   return res.json();
 };
 
-export const saveTorrentToDropzone = async (magnetLink, name) => {
+export const saveTorrentToDropzone = async (magnetLink, infoHash, name, subtitles) => {
   const res = await fetch(`${API_BASE_URL}/dropzone/torrent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ magnetLink, name }),
+    body: JSON.stringify({ magnetLink, infoHash, name, subtitles }),
   });
 
   if (!res.ok) throw new Error('Failed to save torrent');
