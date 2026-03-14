@@ -142,6 +142,47 @@ router.post('/subtitle/ktuvit', async (req, res) => {
   }
 });
 
+router.get('/torrents', async (req, res) => {
+  try {
+    const cookie = await qbtLogin();
+    const { url } = getQbtConfig();
+    const response = await axios.get(
+      `${url}/api/v2/torrents/info`,
+      { headers: { 'Cookie': cookie } }
+    );
+    const torrents = response.data.map(t => ({
+      hash: t.hash,
+      name: t.name,
+      size: t.size,
+      progress: t.progress,
+      state: t.state,
+      dlspeed: t.dlspeed,
+      eta: t.eta,
+    }));
+    res.json(torrents);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to get torrents' });
+  }
+});
+
+router.delete('/torrent/:hash', async (req, res) => {
+  try {
+    const { hash } = req.params;
+    const cookie = await qbtLogin();
+    const { url } = getQbtConfig();
+    await axios.post(
+      `${url}/api/v2/torrents/delete`,
+      `hashes=${hash}&deleteFiles=true`,
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Cookie': cookie } }
+    );
+    res.json({ success: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to delete torrent' });
+  }
+});
+
 router.post('/torrent', async (req, res) => {
   try {
     const { magnetLink, infoHash, name, subtitles } = req.body;

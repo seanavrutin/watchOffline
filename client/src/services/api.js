@@ -98,6 +98,20 @@ export const saveTorrentToDropzone = async (magnetLink, infoHash, name, subtitle
   return res.json();
 };
 
+export const getDropzoneTorrents = async () => {
+  const res = await fetch(`${API_BASE_URL}/dropzone/torrents`);
+  if (!res.ok) throw new Error('Failed to get torrents');
+  return res.json();
+};
+
+export const deleteDropzoneTorrent = async (hash) => {
+  const res = await fetch(`${API_BASE_URL}/dropzone/torrent/${hash}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) throw new Error('Failed to delete torrent');
+  return res.json();
+};
+
 export const searchTmdb = async (query) => {
   const res = await axios.get(`${API_BASE_URL}/tmdb/search?q=${encodeURIComponent(query)}`);
   return res.data;

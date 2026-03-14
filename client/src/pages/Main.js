@@ -3,16 +3,18 @@ import TitleAutocomplete from '../components/TitleAutocomplete';
 import DotsLoader from '../components/DotsLoader';
 import ResultsList from '../components/ResultsList';
 import SubtitlesList from '../components/SubtitlesList';
+import TorrentListDialog from '../components/TorrentListDialog';
 import {
   Box, TextField, Button, useMediaQuery, Autocomplete,
   Switch, Dialog, DialogTitle, DialogContent, DialogActions,
-  Snackbar, Alert, Typography,
+  Snackbar, Alert, Typography, IconButton, Tooltip,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import { searchTorrentsAndSubs } from '../services/api';
 import CheckIcon from '@mui/icons-material/Check';
+import ListAltIcon from '@mui/icons-material/ListAlt';
 
 
 
@@ -34,6 +36,7 @@ function MainTab() {
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [torrentListOpen, setTorrentListOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -295,6 +298,13 @@ function MainTab() {
                 }}
               />
             </Box>
+            {dropzoneActive && (
+              <Tooltip title="Manage torrents">
+                <IconButton size="small" onClick={() => setTorrentListOpen(true)} sx={{ color: '#00897b' }}>
+                  <ListAltIcon />
+                </IconButton>
+              </Tooltip>
+            )}
           </Box>
         </Box>
       </Box>
@@ -396,6 +406,12 @@ function MainTab() {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      <TorrentListDialog
+        open={torrentListOpen}
+        onClose={() => setTorrentListOpen(false)}
+        onNotify={notify}
+      />
     </Box>
   );
 }
