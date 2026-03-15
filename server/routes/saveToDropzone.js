@@ -223,7 +223,8 @@ router.post('/torrent', async (req, res) => {
         const videoFile = findVideoFile(files);
 
         if (videoFile) {
-          const fullVideoPath = path.join(DROPZONE_PATH, videoFile.name);
+          const categoryFolder = isSeries ? 'TV Shows' : 'Movies';
+          const fullVideoPath = path.join(DROPZONE_PATH, categoryFolder, videoFile.name);
           const videoDir = path.dirname(fullVideoPath);
           const videoBaseName = path.basename(videoFile.name).replace(/\.[^.]+$/, '');
 
