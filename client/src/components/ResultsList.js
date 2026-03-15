@@ -43,7 +43,7 @@ const handleSubtitleDownload = async (subtitle) => {
     }
   };
 
-const ResultsList = ({ results, title, season, episode, dropzoneActive, onNotify }) => {
+const ResultsList = ({ results, title, season, episode, isSeries, dropzoneActive, onNotify }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [loadingItems, setLoadingItems] = useState(new Set());
@@ -64,7 +64,7 @@ const ResultsList = ({ results, title, season, episode, dropzoneActive, onNotify
   const handleTorrentToDropzone = async (item, idx) => {
     setLoadingItems(prev => new Set(prev).add(idx));
     try {
-      const result = await saveTorrentToDropzone(item.magnetLink, item.infoHash, item.title, item.subtitles);
+      const result = await saveTorrentToDropzone(item.magnetLink, item.infoHash, item.title, item.subtitles, isSeries);
       const subCount = result.subtitlesSaved?.length || 0;
       const msg = subCount > 0
         ? `Added ${result.filename} + saved ${subCount} subtitle${subCount > 1 ? 's' : ''}`

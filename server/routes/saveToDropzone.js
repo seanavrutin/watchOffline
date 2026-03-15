@@ -35,11 +35,30 @@ async function qbtLogin() {
   return res.headers['set-cookie']?.[0] || '';
 }
 
-async function qbtAddTorrent(cookie, magnetLink) {
+async function qbtEnsureCategory(cookie, category) {
   const { url } = getQbtConfig();
+  try {
+    await axios.post(
+      `${url}/api/v2/torrents/createCategory`,
+      `category=${encodeURIComponent(category)}`,
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Cookie': cookie } }
+    );
+  } catch (e) {
+    // 409 = category already exists, which is fine
+    if (e.response?.status !== 409) throw e;
+  }
+}
+
+async function qbtAddTorrent(cookie, magnetLink, category) {
+  const { url } = getQbtConfig();
+  let body = `urls=${encodeURIComponent(magnetLink)}`;
+  if (category) {
+    await qbtEnsureCategory(cookie, category);
+    body += `&category=${encodeURIComponent(category)}`;
+  }
   await axios.post(
     `${url}/api/v2/torrents/add`,
-    `urls=${encodeURIComponent(magnetLink)}`,
+    body,
     { headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Cookie': cookie } }
   );
 }
@@ -185,13 +204,14 @@ router.delete('/torrent/:hash', async (req, res) => {
 
 router.post('/torrent', async (req, res) => {
   try {
-    const { magnetLink, infoHash, name, subtitles } = req.body;
+    const { magnetLink, infoHash, name, subtitles, isSeries } = req.body;
     if (!magnetLink) {
       return res.status(400).json({ error: 'Missing magnet link' });
     }
 
+    const category = isSeries ? 'TV Shows' : 'Movies';
     const cookie = await qbtLogin();
-    await qbtAddTorrent(cookie, magnetLink);
+    await qbtAddTorrent(cookie, magnetLink, category);
 
     const savedSubs = [];
     const hasSubtitles = subtitles && infoHash && Object.keys(subtitles).length > 0;

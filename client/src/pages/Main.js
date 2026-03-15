@@ -345,6 +345,7 @@ function MainTab() {
               title={title}
               season={season}
               episode={episode}
+              isSeries={isSeries}
               dropzoneActive={dropzoneActive}
               onNotify={notify}
             />
