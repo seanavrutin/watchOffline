@@ -1,6 +1,14 @@
 import axios from 'axios';
+import { auth } from '../firebase';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
+async function getAuthHeaders() {
+  const user = auth.currentUser;
+  if (!user) return {};
+  const token = await user.getIdToken();
+  return { Authorization: `Bearer ${token}` };
+}
 
 export const searchTorrentsAndSubs = async (title, isSeries, season, episode, tmdbId) => {
   const params = new URLSearchParams({ title });
@@ -119,6 +127,38 @@ export const searchTmdb = async (query) => {
 
 export const getTvInfo = async (tmdbId) => {
   const res = await axios.get(`${API_BASE_URL}/tmdb/tvInfo?tmdbId=${tmdbId}`);
+  return res.data;
+};
+
+export const getShows = async () => {
+  const res = await axios.get(`${API_BASE_URL}/shows`);
+  return res.data;
+};
+
+export const addShow = async (tmdbId) => {
+  const headers = await getAuthHeaders();
+  const res = await axios.post(`${API_BASE_URL}/shows`, { tmdbId }, { headers });
+  return res.data;
+};
+
+export const removeShow = async (tmdbId) => {
+  const headers = await getAuthHeaders();
+  const res = await axios.delete(`${API_BASE_URL}/shows/${tmdbId}`, { headers });
+  return res.data;
+};
+
+export const getShowStatus = async (tmdbId) => {
+  const res = await axios.get(`${API_BASE_URL}/shows/${tmdbId}/status`);
+  return res.data;
+};
+
+export const downloadEpisode = async (tmdbId, season, episode) => {
+  const headers = await getAuthHeaders();
+  const res = await axios.post(
+    `${API_BASE_URL}/shows/${tmdbId}/download`,
+    { season, episode },
+    { headers }
+  );
   return res.data;
 };
 

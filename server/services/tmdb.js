@@ -23,4 +23,15 @@ async function getTvInfo(tmdbId) {
   }
 }
 
-module.exports = { getImdbIdFromTmdbId,getTvInfo };
+async function getSeasonDetails(tmdbId, seasonNumber) {
+  try {
+    const url = `https://api.themoviedb.org/3/tv/${tmdbId}/season/${seasonNumber}?api_key=${TMDB_API_KEY}`;
+    const res = await axios.get(url);
+    return res.data || null;
+  } catch (err) {
+    console.error(`Failed to get season ${seasonNumber} details from TMDb:`, err.message);
+    return null;
+  }
+}
+
+module.exports = { getImdbIdFromTmdbId, getTvInfo, getSeasonDetails };
