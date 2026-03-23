@@ -177,7 +177,7 @@ router.get('/:tmdbId/status', async (req, res) => {
       };
     }));
 
-    res.json({ tmdbId: show.tmdbId, title: show.title, seasons });
+    res.json({ tmdbId: show.tmdbId, title: show.title, trackedSeasons: show.trackedSeasons || [], seasons });
   } catch (err) {
     console.error('Failed to get show status:', err.message);
     res.status(500).json({ error: 'Failed to get show status' });
@@ -223,6 +223,48 @@ router.post('/:tmdbId/download', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('Failed to download episode:', err.message);
     res.status(500).json({ error: 'Failed to download episode' });
+  }
+});
+
+router.put('/:tmdbId/track', requireAuth, async (req, res) => {
+  const { season, tracked } = req.body;
+  if (season === undefined || tracked === undefined) {
+    return res.status(400).json({ error: 'Missing season or tracked' });
+  }
+
+  try {
+    const docRef = db.collection(SHOWS_COLLECTION).doc(req.params.tmdbId);
+    const doc = await docRef.get();
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Show not found' });
+    }
+
+    const data = doc.data();
+    let trackedSeasons = data.trackedSeasons || [];
+
+    if (tracked && !trackedSeasons.includes(season)) {
+      trackedSeasons.push(season);
+      trackedSeasons.sort((a, b) => a - b);
+    } else if (!tracked) {
+      trackedSeasons = trackedSeasons.filter(s => s !== season);
+    }
+
+    await docRef.update({ trackedSeasons });
+    res.json({ trackedSeasons });
+  } catch (err) {
+    console.error('Failed to update tracking:', err.message);
+    res.status(500).json({ error: 'Failed to update tracking' });
+  }
+});
+
+router.post('/check-all', requireAuth, async (req, res) => {
+  try {
+    const { runEpisodeCheck } = require('../jobs/episodeChecker');
+    res.json({ message: 'Episode check started' });
+    runEpisodeCheck();
+  } catch (err) {
+    console.error('Failed to trigger episode check:', err.message);
+    res.status(500).json({ error: 'Failed to trigger episode check' });
   }
 });
 

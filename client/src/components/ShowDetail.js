@@ -9,13 +9,22 @@ import DownloadIcon from '@mui/icons-material/Download';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import SyncIcon from '@mui/icons-material/Sync';
 import EventIcon from '@mui/icons-material/Event';
-import { getShowStatus, downloadEpisode } from '../services/api';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
+import { getShowStatus, downloadEpisode, trackSeason } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 function formatAirDate(dateStr) {
   if (!dateStr) return 'TBA';
-  const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const airDate = new Date(dateStr + 'T00:00:00');
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const diffMs = airDate - now;
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return '1 day';
+  if (diffDays > 1 && diffDays <= 365) return `${diffDays} days`;
+  return airDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
 function ShowDetail({ show, onBack }) {
@@ -24,12 +33,14 @@ function ShowDetail({ show, onBack }) {
   const [statusData, setStatusData] = useState(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [downloadingEps, setDownloadingEps] = useState({});
+  const [trackedSeasons, setTrackedSeasons] = useState([]);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   const fetchStatus = useCallback(async () => {
     try {
       const data = await getShowStatus(show.tmdbId);
       setStatusData(data);
+      setTrackedSeasons(data.trackedSeasons || []);
     } catch (err) {
       console.error('Failed to fetch show status:', err);
     } finally {
@@ -59,6 +70,26 @@ function ShowDetail({ show, onBack }) {
       setSnackbar({ open: true, message: msg, severity: 'error' });
     } finally {
       setDownloadingEps(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const handleTrackToggle = async (seasonNum, e) => {
+    e.stopPropagation();
+    const isTracked = trackedSeasons.includes(seasonNum);
+    const newTracked = isTracked
+      ? trackedSeasons.filter(s => s !== seasonNum)
+      : [...trackedSeasons, seasonNum].sort((a, b) => a - b);
+    setTrackedSeasons(newTracked);
+    try {
+      await trackSeason(show.tmdbId, seasonNum, !isTracked);
+      setSnackbar({
+        open: true,
+        message: isTracked ? `Stopped tracking Season ${seasonNum}` : `Tracking Season ${seasonNum}`,
+        severity: 'success',
+      });
+    } catch (err) {
+      setTrackedSeasons(trackedSeasons);
+      setSnackbar({ open: true, message: 'Failed to update tracking', severity: 'error' });
     }
   };
 
@@ -175,6 +206,28 @@ function ShowDetail({ show, onBack }) {
                     )}
                   </Typography>
                 </Box>
+                {isPermitted && (
+                  <Box
+                    component="span"
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => handleTrackToggle(season.seasonNumber, e)}
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      cursor: 'pointer',
+                      p: 0.5,
+                      borderRadius: '50%',
+                      color: trackedSeasons.includes(season.seasonNumber) ? '#ff9800' : 'text.disabled',
+                      '&:hover': { backgroundColor: 'rgba(0,0,0,0.04)' },
+                    }}
+                  >
+                    {trackedSeasons.includes(season.seasonNumber)
+                      ? <NotificationsActiveIcon fontSize="small" />
+                      : <NotificationsOffIcon fontSize="small" />
+                    }
+                  </Box>
+                )}
               </Box>
             </AccordionSummary>
             <AccordionDetails sx={{ p: 0 }}>
@@ -254,8 +307,14 @@ function EpisodeRow({ ep, canDownload, isDownloading, onDownload }) {
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography
           variant="body2"
-          noWrap
-          sx={{ color: isNotAired ? 'text.disabled' : 'text.primary' }}
+          sx={{
+            color: isNotAired ? 'text.disabled' : 'text.primary',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            lineHeight: 1.3,
+          }}
         >
           {ep.name || `Episode ${ep.episodeNumber}`}
         </Typography>

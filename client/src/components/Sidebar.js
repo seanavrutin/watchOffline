@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Drawer, Box, List, ListItemButton, ListItemIcon, ListItemText,
   Avatar, Typography, Button, Divider, IconButton, useMediaQuery, Switch,
+  CircularProgress,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
 import VideoLibraryIcon from '@mui/icons-material/VideoLibrary';
 import DownloadingIcon from '@mui/icons-material/Downloading';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useAuth } from '../contexts/AuthContext';
+import { triggerEpisodeCheck } from '../services/api';
 
 const DRAWER_WIDTH = 240;
 
@@ -17,6 +20,18 @@ function Sidebar({ currentPage, onNavigate, mobileOpen, onMobileToggle, saveOnSe
   const { user, loading, isPermitted, signIn, signOut } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [checkRunning, setCheckRunning] = useState(false);
+
+  const handleRunCheck = async () => {
+    setCheckRunning(true);
+    try {
+      await triggerEpisodeCheck();
+    } catch (err) {
+      console.error('Episode check failed:', err);
+    } finally {
+      setCheckRunning(false);
+    }
+  };
 
   const navItems = [
     { id: 'main', label: 'Search', icon: <SearchIcon /> },
@@ -91,6 +106,24 @@ function Sidebar({ currentPage, onNavigate, mobileOpen, onMobileToggle, saveOnSe
                 '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#00897b' },
               }}
             />
+          </Box>
+          <Box sx={{ px: 2, pb: 1 }}>
+            <Button
+              fullWidth
+              size="small"
+              variant="outlined"
+              disabled={checkRunning}
+              onClick={handleRunCheck}
+              startIcon={checkRunning ? <CircularProgress size={16} /> : <PlayArrowIcon />}
+              sx={{
+                textTransform: 'none',
+                borderColor: '#00897b',
+                color: '#00897b',
+                '&:hover': { borderColor: '#00695c', backgroundColor: 'rgba(0, 137, 123, 0.08)' },
+              }}
+            >
+              {checkRunning ? 'Checking...' : 'Run Episode Check'}
+            </Button>
           </Box>
         </>
       )}
