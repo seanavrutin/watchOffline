@@ -11,7 +11,7 @@ import SyncIcon from '@mui/icons-material/Sync';
 import EventIcon from '@mui/icons-material/Event';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
-import { getShowStatus, downloadEpisode, trackSeason } from '../services/api';
+import { getShowStatus, downloadEpisode, downloadSeason, trackSeason } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 function formatAirDate(dateStr) {
@@ -33,6 +33,7 @@ function ShowDetail({ show, onBack }) {
   const [statusData, setStatusData] = useState(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [downloadingEps, setDownloadingEps] = useState({});
+  const [downloadingSeasons, setDownloadingSeasons] = useState({});
   const [trackedSeasons, setTrackedSeasons] = useState([]);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
@@ -70,6 +71,27 @@ function ShowDetail({ show, onBack }) {
       setSnackbar({ open: true, message: msg, severity: 'error' });
     } finally {
       setDownloadingEps(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const handleDownloadSeason = async (seasonNum, e) => {
+    e.stopPropagation();
+    setDownloadingSeasons(prev => ({ ...prev, [seasonNum]: true }));
+    try {
+      const result = await downloadSeason(show.tmdbId, seasonNum);
+      setSnackbar({
+        open: true,
+        message: result.torrentName
+          ? `Season pack: ${result.torrentName}`
+          : `Season ${seasonNum} download started`,
+        severity: 'success',
+      });
+      setTimeout(fetchStatus, 3000);
+    } catch (err) {
+      const msg = err.response?.data?.error || `Failed to download season ${seasonNum}`;
+      setSnackbar({ open: true, message: msg, severity: 'error' });
+    } finally {
+      setDownloadingSeasons(prev => ({ ...prev, [seasonNum]: false }));
     }
   };
 
@@ -207,25 +229,49 @@ function ShowDetail({ show, onBack }) {
                   </Typography>
                 </Box>
                 {isPermitted && (
-                  <Box
-                    component="span"
-                    role="button"
-                    tabIndex={0}
-                    onClick={(e) => handleTrackToggle(season.seasonNumber, e)}
-                    sx={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      cursor: 'pointer',
-                      p: 0.5,
-                      borderRadius: '50%',
-                      color: trackedSeasons.includes(season.seasonNumber) ? '#ff9800' : 'text.disabled',
-                      '&:hover': { backgroundColor: 'rgba(0,0,0,0.04)' },
-                    }}
-                  >
-                    {trackedSeasons.includes(season.seasonNumber)
-                      ? <NotificationsActiveIcon fontSize="small" />
-                      : <NotificationsOffIcon fontSize="small" />
-                    }
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    {downloadingSeasons[season.seasonNumber] ? (
+                      <CircularProgress size={20} sx={{ color: '#00897b', mx: 0.5 }} />
+                    ) : (
+                      <Box
+                        component="span"
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => handleDownloadSeason(season.seasonNumber, e)}
+                        title="Download full season"
+                        sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          cursor: 'pointer',
+                          p: 0.5,
+                          borderRadius: '50%',
+                          color: '#00897b',
+                          '&:hover': { backgroundColor: 'rgba(0,0,0,0.04)' },
+                        }}
+                      >
+                        <DownloadIcon fontSize="small" />
+                      </Box>
+                    )}
+                    <Box
+                      component="span"
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => handleTrackToggle(season.seasonNumber, e)}
+                      sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        cursor: 'pointer',
+                        p: 0.5,
+                        borderRadius: '50%',
+                        color: trackedSeasons.includes(season.seasonNumber) ? '#ff9800' : 'text.disabled',
+                        '&:hover': { backgroundColor: 'rgba(0,0,0,0.04)' },
+                      }}
+                    >
+                      {trackedSeasons.includes(season.seasonNumber)
+                        ? <NotificationsActiveIcon fontSize="small" />
+                        : <NotificationsOffIcon fontSize="small" />
+                      }
+                    </Box>
                   </Box>
                 )}
               </Box>

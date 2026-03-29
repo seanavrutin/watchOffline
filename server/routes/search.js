@@ -16,10 +16,53 @@ router.get('/', async (req, res) => {
     title = title.replace("'","");
     let imdbIdFilter = null;
     const isSeries = season ? true : false;
+    const isFullSeason = season && !episode;
 
     if (tmdbId) {
       const mediaType = isSeries ? 'tv' : 'movie';
       imdbIdFilter = await getImdbIdFromTmdbId(tmdbId, mediaType);
+    }
+
+    if (isFullSeason) {
+      const paddedSeason = season.padStart(2, '0');
+      const queries = [
+        `${title} s${paddedSeason}`,
+        `${title} season ${parseInt(season, 10)}`,
+      ];
+
+      const epPattern = /s\d{2}e\d{2}/i;
+      let torrents = [];
+
+      for (const query of queries) {
+        const results = await Apibay.search(query);
+        torrents.push(...results);
+      }
+
+      const seen = new Set();
+      torrents = torrents.filter(t => {
+        if (seen.has(t.infoHash)) return false;
+        seen.add(t.infoHash);
+        return true;
+      });
+
+      torrents = torrents.filter(t => !epPattern.test(t.name));
+
+      if (imdbIdFilter) {
+        torrents = torrents.filter(t => t.imdb === imdbIdFilter || t.imdb === '');
+      }
+
+      const formatted = torrents.map(t => ({
+        id: t.id,
+        infoHash: t.infoHash,
+        title: t.name,
+        size: t.size,
+        seeders: t.seeders,
+        leechers: t.leechers,
+        magnetLink: t.magnetLink,
+        subtitles: {},
+      }));
+
+      return res.json({ torrents: formatted, subs: [] });
     }
 
     const query = season && episode

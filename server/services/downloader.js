@@ -259,4 +259,67 @@ async function recheckMissingSubs({ title, imdbId, season, episode, torrentHash,
   };
 }
 
-module.exports = { findAndDownloadEpisode, recheckMissingSubs };
+async function findAndDownloadSeason({ title, tmdbId, imdbId, season }) {
+  const paddedSeason = String(season).padStart(2, '0');
+
+  if (!imdbId && tmdbId) {
+    imdbId = await getImdbIdFromTmdbId(tmdbId, 'tv');
+  }
+
+  const queries = [
+    `${title} s${paddedSeason}`,
+    `${title} season ${season}`,
+  ];
+
+  const epPattern = /s\d{2}e\d{2}/i;
+  const MAX_SEASON_SIZE_MB = 50000;
+  let allTorrents = [];
+
+  for (const query of queries) {
+    console.log(`[downloader] Season search: ${query}`);
+    const results = await Apibay.search(query);
+    allTorrents.push(...results);
+  }
+
+  const seen = new Set();
+  allTorrents = allTorrents.filter(t => {
+    if (seen.has(t.infoHash)) return false;
+    seen.add(t.infoHash);
+    return true;
+  });
+
+  allTorrents = allTorrents.filter(t => !epPattern.test(t.name));
+
+  if (imdbId) {
+    allTorrents = allTorrents.filter(t => t.imdb === imdbId || t.imdb === '');
+  }
+
+  const sizeMB = (sizeStr) => parseFloat(sizeStr) || 0;
+  allTorrents = allTorrents.filter(t =>
+    parseInt(t.seeders, 10) >= MIN_SEEDERS &&
+    sizeMB(t.size) <= MAX_SEASON_SIZE_MB
+  );
+
+  if (allTorrents.length === 0) {
+    console.log('[downloader] No season pack torrents found');
+    return { success: false, reason: 'no_torrents' };
+  }
+
+  allTorrents.sort((a, b) => (parseInt(b.seeders, 10) || 0) - (parseInt(a.seeders, 10) || 0));
+  const selected = allTorrents[0];
+
+  console.log(`[downloader] Selected season pack: ${selected.name} (seeders: ${selected.seeders}, size: ${selected.size})`);
+
+  const cookie = await qbt.login();
+  await qbt.addTorrent(cookie, selected.magnetLink, 'TV Shows');
+
+  return {
+    success: true,
+    torrentName: selected.name,
+    infoHash: selected.infoHash,
+    seeders: selected.seeders,
+    size: selected.size,
+  };
+}
+
+module.exports = { findAndDownloadEpisode, recheckMissingSubs, findAndDownloadSeason };

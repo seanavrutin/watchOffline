@@ -99,6 +99,15 @@ function parseEpisodeFromName(name) {
   return null;
 }
 
+function parseSeasonPackFromName(name) {
+  if (/S\d{1,2}E\d{1,2}/i.test(name)) return null;
+  const match = name.match(/S(\d{1,2})/i) || name.match(/Season[\s._-]?(\d{1,2})/i);
+  if (match) {
+    return { season: parseInt(match[1], 10) };
+  }
+  return null;
+}
+
 module.exports = {
   getConfig,
   login,
@@ -110,5 +119,6 @@ module.exports = {
   waitForFiles,
   findVideoFile,
   parseEpisodeFromName,
+  parseSeasonPackFromName,
   VIDEO_EXTENSIONS,
 };

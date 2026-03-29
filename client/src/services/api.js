@@ -162,6 +162,16 @@ export const downloadEpisode = async (tmdbId, season, episode) => {
   return res.data;
 };
 
+export const downloadSeason = async (tmdbId, season) => {
+  const headers = await getAuthHeaders();
+  const res = await axios.post(
+    `${API_BASE_URL}/shows/${tmdbId}/download-season`,
+    { season },
+    { headers }
+  );
+  return res.data;
+};
+
 export const trackSeason = async (tmdbId, season, tracked) => {
   const headers = await getAuthHeaders();
   const res = await axios.put(

@@ -4,7 +4,7 @@ const { db } = require('../firebase');
 const { requireAuth } = require('../middleware/auth');
 const { getTvInfo, getImdbIdFromTmdbId, getSeasonDetails } = require('../services/tmdb');
 const qbt = require('../services/qbittorrent');
-const { findAndDownloadEpisode } = require('../services/downloader');
+const { findAndDownloadEpisode, findAndDownloadSeason } = require('../services/downloader');
 
 const SHOWS_COLLECTION = 'shows';
 
@@ -111,18 +111,33 @@ router.get('/:tmdbId/status', async (req, res) => {
     });
 
     const episodeStatusMap = {};
+    const seasonPackMap = {};
     for (const t of matchingTorrents) {
       const parsed = qbt.parseEpisodeFromName(t.name);
-      if (!parsed) continue;
-      const key = `S${String(parsed.season).padStart(2, '0')}E${String(parsed.episode).padStart(2, '0')}`;
-      const isComplete = t.progress >= 1;
-      const existing = episodeStatusMap[key];
-      if (!existing || (isComplete && existing.status !== 'downloaded')) {
-        episodeStatusMap[key] = {
-          status: isComplete ? 'downloaded' : 'downloading',
-          progress: Math.round(t.progress * 100),
-          torrentName: t.name,
-        };
+      if (parsed) {
+        const key = `S${String(parsed.season).padStart(2, '0')}E${String(parsed.episode).padStart(2, '0')}`;
+        const isComplete = t.progress >= 1;
+        const existing = episodeStatusMap[key];
+        if (!existing || (isComplete && existing.status !== 'downloaded')) {
+          episodeStatusMap[key] = {
+            status: isComplete ? 'downloaded' : 'downloading',
+            progress: Math.round(t.progress * 100),
+            torrentName: t.name,
+          };
+        }
+        continue;
+      }
+      const seasonPack = qbt.parseSeasonPackFromName(t.name);
+      if (seasonPack) {
+        const isComplete = t.progress >= 1;
+        const existing = seasonPackMap[seasonPack.season];
+        if (!existing || (isComplete && existing.status !== 'downloaded')) {
+          seasonPackMap[seasonPack.season] = {
+            status: isComplete ? 'downloaded' : 'downloading',
+            progress: Math.round(t.progress * 100),
+            torrentName: t.name,
+          };
+        }
       }
     }
 
@@ -140,6 +155,7 @@ router.get('/:tmdbId/status', async (req, res) => {
         console.error(`Failed to fetch season ${season.seasonNumber} details:`, err.message);
       }
 
+      const pack = seasonPackMap[season.seasonNumber];
       const episodes = Array.from({ length: season.episodeCount }, (_, i) => {
         const epNum = i + 1;
         const key = `S${String(season.seasonNumber).padStart(2, '0')}E${String(epNum).padStart(2, '0')}`;
@@ -149,8 +165,17 @@ router.get('/:tmdbId/status', async (req, res) => {
         const aired = airDate ? airDate <= today : false;
 
         let status;
+        let progress = 0;
+        let torrentName = null;
+
         if (match?.status) {
           status = match.status;
+          progress = match.progress;
+          torrentName = match.torrentName;
+        } else if (pack) {
+          status = pack.status;
+          progress = pack.progress;
+          torrentName = pack.torrentName;
         } else if (!aired) {
           status = 'not_aired';
         } else {
@@ -164,8 +189,8 @@ router.get('/:tmdbId/status', async (req, res) => {
           airDate,
           aired,
           status,
-          progress: match?.progress || 0,
-          torrentName: match?.torrentName || null,
+          progress,
+          torrentName,
         };
       });
 
@@ -223,6 +248,44 @@ router.post('/:tmdbId/download', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('Failed to download episode:', err.message);
     res.status(500).json({ error: 'Failed to download episode' });
+  }
+});
+
+router.post('/:tmdbId/download-season', requireAuth, async (req, res) => {
+  const { season } = req.body;
+  if (!season) {
+    return res.status(400).json({ error: 'Missing season' });
+  }
+
+  try {
+    const doc = await db.collection(SHOWS_COLLECTION).doc(req.params.tmdbId).get();
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Show not found' });
+    }
+    const show = doc.data();
+
+    let imdbId = null;
+    try {
+      imdbId = await getImdbIdFromTmdbId(show.tmdbId, 'tv');
+    } catch (err) {
+      console.error('Failed to resolve IMDb ID:', err.message);
+    }
+
+    const result = await findAndDownloadSeason({
+      title: show.title,
+      tmdbId: show.tmdbId,
+      imdbId,
+      season,
+    });
+
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(404).json({ error: 'No season pack torrents found' });
+    }
+  } catch (err) {
+    console.error('Failed to download season:', err.message);
+    res.status(500).json({ error: 'Failed to download season' });
   }
 });
 

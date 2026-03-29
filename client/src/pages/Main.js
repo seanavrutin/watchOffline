@@ -38,14 +38,16 @@ function MainTab({ dropzoneActive = false }) {
     return data?.[title]?.[season]?.includes(episode);
   };
 
+  const isFullSeason = isSeries && season && !episode;
+
   const handleSearch = async () => {
     setSearchAttempted(true);
-    if (isSeries && (!episode || !season)) {
+    if (isSeries && !season) {
       return;
     }
 
-    const paddedSeason = season.padStart(2, '0');
-    const paddedEpisode = episode.padStart(2, '0');
+    const paddedSeason = season ? season.padStart(2, '0') : '';
+    const paddedEpisode = episode ? episode.padStart(2, '0') : '';
 
     setAllTorrents([]);
     setAllSubs([]);
@@ -85,6 +87,10 @@ function MainTab({ dropzoneActive = false }) {
             fullWidth
             error={isSeries && searchAttempted && !season}
             helperText={isSeries && searchAttempted && !season ? 'Required' : ''}
+            InputProps={{
+              ...params.InputProps,
+              readOnly: seasons.filter(s => s.air_date !== null).length > 0,
+            }}
           />
         )}
       />
@@ -120,8 +126,11 @@ function MainTab({ dropzoneActive = false }) {
             {...params}
             label="Episode"
             fullWidth
-            error={isSeries && searchAttempted && !episode}
-            helperText={isSeries && searchAttempted && !episode ? 'Required' : ''}
+            helperText=""
+            InputProps={{
+              ...params.InputProps,
+              readOnly: !!season,
+            }}
           />
         )}
       />
@@ -157,23 +166,25 @@ function MainTab({ dropzoneActive = false }) {
 
       {allTorrents.length > 0 && (
         <>
-          <Box sx={{ width: '100%', display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
-            <ToggleButtonGroup
-              value={tab}
-              exclusive
-              onChange={(e, value) => value && setTab(value)}
-              size="small"
-            >
-              <ToggleButton sx={{ paddingBottom: 0, paddingTop: 0, textTransform: 'none' }} value="torrents">
-                Torrents
-              </ToggleButton>
-              <ToggleButton sx={{ paddingBottom: 0, paddingTop: 0, textTransform: 'none' }} value="subs">
-                Subtitles
-              </ToggleButton>
-            </ToggleButtonGroup>
-          </Box>
+          {!isFullSeason && (
+            <Box sx={{ width: '100%', display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
+              <ToggleButtonGroup
+                value={tab}
+                exclusive
+                onChange={(e, value) => value && setTab(value)}
+                size="small"
+              >
+                <ToggleButton sx={{ paddingBottom: 0, paddingTop: 0, textTransform: 'none' }} value="torrents">
+                  Torrents
+                </ToggleButton>
+                <ToggleButton sx={{ paddingBottom: 0, paddingTop: 0, textTransform: 'none' }} value="subs">
+                  Subtitles
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+          )}
 
-          {tab === 'torrents' && (
+          {(tab === 'torrents' || isFullSeason) && (
             <ResultsList
               results={allTorrents}
               title={title}
@@ -184,7 +195,7 @@ function MainTab({ dropzoneActive = false }) {
               onNotify={notify}
             />
           )}
-          {tab === 'subs' && (
+          {tab === 'subs' && !isFullSeason && (
             <SubtitlesList
               subtitles={allSubs}
               query={title}
