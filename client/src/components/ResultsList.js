@@ -107,7 +107,7 @@ const ResultsList = ({ results, title, season, episode, isSeries, dropzoneActive
             <Card key={idx} variant="outlined">
                 <CardHeader
                     title={item.title}
-                    sx={{ backgroundColor: '#e0f7fa', padding: 1, textAlign: 'center' }}
+                    sx={{ backgroundColor: '#e0f7fa', padding: 1, textAlign: 'center', wordBreak: 'break-word' }}
                     titleTypographyProps={{ variant: 'subtitle2' }}
                 />
                 <CardContent>
@@ -153,15 +153,15 @@ const ResultsList = ({ results, title, season, episode, isSeries, dropzoneActive
         </Box>
         ) : (
         <TableContainer component={Paper} >
-            <Table hover stickyHeader size="small">
+            <Table hover stickyHeader size="small" sx={{ tableLayout: 'fixed' }}>
             <TableHead>
                 <TableRow sx={{ backgroundColor: '#e0f7fa' }}>
                 <TableCell sx={{ backgroundColor: '#e0f7fa' }}>Name</TableCell>
-                <TableCell sx={{ backgroundColor: '#e0f7fa' }}>Size</TableCell>
-                <TableCell sx={{ backgroundColor: '#e0f7fa' }}>Seeders</TableCell>
-                <TableCell sx={{ backgroundColor: '#e0f7fa' }}>Leechers</TableCell>
-                <TableCell sx={{ backgroundColor: '#e0f7fa' }}>Download</TableCell>
-                <TableCell sx={{ backgroundColor: '#e0f7fa' }}>Subtitles</TableCell>
+                <TableCell sx={{ backgroundColor: '#e0f7fa', width: 90 }}>Size</TableCell>
+                <TableCell sx={{ backgroundColor: '#e0f7fa', width: 80 }}>Seeders</TableCell>
+                <TableCell sx={{ backgroundColor: '#e0f7fa', width: 80 }}>Leechers</TableCell>
+                <TableCell sx={{ backgroundColor: '#e0f7fa', width: 80 }}>Download</TableCell>
+                <TableCell sx={{ backgroundColor: '#e0f7fa', width: 100 }}>Subtitles</TableCell>
                 </TableRow>
             </TableHead>
             <TableBody>
@@ -171,7 +171,7 @@ const ResultsList = ({ results, title, season, episode, isSeries, dropzoneActive
                       backgroundColor: '#f1f1f1', // Light gray or any color you prefer
                     },
                   }} key={idx}>
-                    <TableCell>{item.title}</TableCell>
+                    <TableCell sx={{ wordBreak: 'break-word' }}>{item.title}</TableCell>
                     <TableCell>{formatSize(item.size)}</TableCell>
                     <TableCell sx={{ color: 'green' }}>{item.seeders}</TableCell>
                     <TableCell sx={{ color: 'red' }}>{item.leechers}</TableCell>
