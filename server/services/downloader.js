@@ -290,6 +290,12 @@ async function findAndDownloadSeason({ title, tmdbId, imdbId, season }) {
 
   allTorrents = allTorrents.filter(t => !epPattern.test(t.name));
 
+  const seasonNum = parseInt(season, 10);
+  const seasonRegex = new RegExp(
+    `(?:s0?${seasonNum}(?!\\d)|season\\s*0?${seasonNum}(?!\\d))`, 'i'
+  );
+  allTorrents = allTorrents.filter(t => seasonRegex.test(t.name));
+
   if (imdbId) {
     allTorrents = allTorrents.filter(t => t.imdb === imdbId || t.imdb === '');
   }

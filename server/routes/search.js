@@ -47,6 +47,12 @@ router.get('/', async (req, res) => {
 
       torrents = torrents.filter(t => !epPattern.test(t.name));
 
+      const seasonNum = parseInt(season, 10);
+      const seasonRegex = new RegExp(
+        `(?:s0?${seasonNum}(?!\\d)|season\\s*0?${seasonNum}(?!\\d))`, 'i'
+      );
+      torrents = torrents.filter(t => seasonRegex.test(t.name));
+
       if (imdbIdFilter) {
         torrents = torrents.filter(t => t.imdb === imdbIdFilter || t.imdb === '');
       }
