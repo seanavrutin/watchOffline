@@ -7,4 +7,7 @@ services:
     ports:
       - "3001:3001"
     volumes:
-      - //d/DropZone:/dropzone
+      # Host folder with the media. Defaults to the home server's external drive;
+      # for local dev on Windows put DROPZONE_HOST_PATH=//d/DropZone in a .env
+      # next to this file (gitignored).
+      - ${DROPZONE_HOST_PATH:-/mnt/external/DropZone}:/dropzone
