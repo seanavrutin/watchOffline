@@ -4,6 +4,9 @@ services:
   server:
     build: ./server
     restart: always
+    # Secrets/config at runtime; server/.dockerignore keeps .env out of the image.
+    env_file:
+      - ./server/.env
     ports:
       - "3001:3001"
     volumes:

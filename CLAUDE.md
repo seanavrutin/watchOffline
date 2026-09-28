@@ -31,16 +31,15 @@ serves. It also tracks TV seasons and auto-downloads new episodes daily.
 only emails whose local part is in `PERMITTED_USERS`.
 
 ## Configuration
-Env comes from `server/.env` via `dotenv` — the compose file passes no
-`environment`/`env_file`. Keys: `PORT` (3001), `DROPZONE_PATH` (in-container,
+Env comes from `server/.env`: in Docker via the compose `env_file` (and
+`server/.dockerignore` keeps it out of the image); locally via `dotenv`. Keys: `PORT` (3001), `DROPZONE_PATH` (in-container,
 default `/dropzone`), `QBITTORRENT_URL/USER/PASS`, `TMDB_API_KEY`,
 `OPENSUBTITLES_API_KEY`, `USER_AGENT`, `PERMITTED_USERS`, `MAIL_TO`,
 `RESEND_API_KEY`, `FIREBASE_SERVICE_ACCOUNT_JSON` or `…_PATH`.
 
-**`server/.env` is baked into the image**: the build context is `./server`,
-which has no `.dockerignore`, and the Dockerfile does `COPY . .`. So an `.env`
-change needs a rebuild (`docker compose up -d --build`), not a restart — and the
-image contains the secrets.
+An `.env` change needs `docker compose up -d` (recreates the container with the
+new env) — `docker compose restart` does **not** re-read `env_file`. Keep values
+free of `$` (compose interpolates it) or escape it as `$$`.
 
 The host media folder is `DROPZONE_HOST_PATH` in the compose file (see the
 comment there); it defaults to the home server's path.
@@ -68,10 +67,11 @@ docker logs --since 7d -t watchoffline-server-1 2>&1 | grep '\[episodeChecker\]'
   Ktuvit (scraped, cookie-based — breaks when the site changes), qBittorrent
   login. Check which service logged before blaming the route.
 
-Known gaps (not bugs to "discover" again):
+Deliberate, not bugs to "discover" again:
 - Only the `/api/shows` write routes are authenticated. Torrent add/delete and
-  subtitle writes under `/api/dropzone` are open to anyone who can reach the API.
-- `.env` baked into the image (above).
+  subtitle writes under `/api/dropzone` are open to anyone who can reach the API,
+  and the search page offers them to anonymous visitors. The owner chose to keep
+  it that way (2026-09-28) — don't add auth there unless asked.
 
 ## Rules
 - No build step and no tests. Verify server changes with `node --check` on each
