@@ -1,0 +1,6 @@
+# Runtime secrets come from the compose env_file, never from the image.
+.env*
+*firebase-adminsdk*
+firebase-service-account*.json
+node_modules
+npm-debug.log*
